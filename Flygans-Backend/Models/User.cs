@@ -1,14 +1,27 @@
-﻿public class User
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Flygans_Backend.Models;
+
+public class User
 {
     public int Id { get; set; }
 
-    public string FullName { get; set; }
+    [Required]
+    [MinLength(3)]
+    public string FullName { get; set; } = string.Empty;
 
-    public string Email { get; set; }
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
 
-    public string PasswordHash { get; set; }
+    [Required]
+    public string PasswordHash { get; set; } = string.Empty;
 
-    // ✅ REFRESH TOKEN DATA
+    // ✅ ROLE BASED AUTH
+    [Required]
+    public string Role { get; set; } = "User";
+
+    // ✅ REFRESH TOKEN
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
 }

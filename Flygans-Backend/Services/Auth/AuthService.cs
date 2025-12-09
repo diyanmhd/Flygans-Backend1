@@ -1,4 +1,4 @@
-﻿using Flygans_Backend.DTOs;
+﻿using Flygans_Backend.DTOs.Auth;   // ✅ FIXED
 using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Auth;
 using System.Security.Cryptography;
