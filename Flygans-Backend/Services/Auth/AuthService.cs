@@ -1,4 +1,4 @@
-﻿using Flygans_Backend.DTOs.Auth;   // ✅ FIXED
+﻿using Flygans_Backend.DTOs.Auth;
 using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Auth;
 using System.Security.Cryptography;
@@ -32,6 +32,10 @@ public class AuthService : IAuthService
             FullName = dto.FullName,
             Email = dto.Email,
             PasswordHash = Hash(dto.Password),
+
+            // ✅ ADD ROLE HERE
+            Role = "Admin",
+
             RefreshToken = null,
             RefreshTokenExpiryTime = null
         };
@@ -114,9 +118,6 @@ public class AuthService : IAuthService
         await _repo.Save();
     }
 
-    // ---------------------
-    // PASSWORD HASHING
-    // ---------------------
     private string Hash(string input)
     {
         using var sha = SHA256.Create();

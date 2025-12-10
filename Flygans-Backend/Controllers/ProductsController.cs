@@ -1,26 +1,36 @@
-﻿using Flygans_Backend.Data;
+﻿using Flygans_Backend.DTOs.Product;
+using Flygans_Backend.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Flygans_Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]   // ✅ PROTECTS ALL ENDPOINTS IN THIS CONTROLLER
 public class ProductsController : ControllerBase
 {
-    private readonly FlyganDbContext _context;
+    private readonly IProductService _service;
 
-    public ProductsController(FlyganDbContext context)
+    public ProductsController(IProductService service)
     {
-        _context = context;
+        _service = service;
     }
 
+    // ✅ PUBLIC — GET ALL PRODUCTS
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetProducts()
     {
-        var products = await _context.Products.ToListAsync();
+        var products = await _service.GetProducts();
         return Ok(products);
+    }
+
+    // ✅ ADMIN ONLY — ADD PRODUCT
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> AddProduct(CreateProductDto dto)
+    {
+        await _service.AddProduct(dto);
+        return Ok("Product Added Successfully ✅");
     }
 }

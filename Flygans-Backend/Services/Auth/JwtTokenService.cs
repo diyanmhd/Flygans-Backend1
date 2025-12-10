@@ -17,9 +17,6 @@ public class JwtTokenService : IJwtTokenService
         _config = config;
     }
 
-    // ---------------------
-    // CREATE JWT ACCESS TOKEN
-    // ---------------------
     public string CreateToken(User user)
     {
         var jwt = _config.GetSection("Jwt");
@@ -28,7 +25,10 @@ public class JwtTokenService : IJwtTokenService
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.FullName)
+            new Claim(ClaimTypes.Name, user.FullName),
+
+            // ✅ REQUIRED FOR ADMIN AUTH
+            new Claim(ClaimTypes.Role, user.Role)
         };
 
         var key = new SymmetricSecurityKey(
@@ -48,9 +48,6 @@ public class JwtTokenService : IJwtTokenService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    // ---------------------
-    // CREATE REFRESH TOKEN
-    // ---------------------
     public string GenerateRefreshToken()
     {
         var randomBytes = new byte[64];

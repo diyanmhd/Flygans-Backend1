@@ -1,6 +1,14 @@
 ﻿using Flygans_Backend.Data;
 using Flygans_Backend.Repositories.Auth;
+using Flygans_Backend.Repositories.Products;
+using Flygans_Backend.Repositories.Wishlists;
+using Flygans_Backend.Repositories.Carts;
+using Flygans_Backend.Repositories.Categories;        // ✅ ADD
 using Flygans_Backend.Services.Auth;
+using Flygans_Backend.Services.Products;
+using Flygans_Backend.Services.Wishlists;
+using Flygans_Backend.Services.Carts;
+using Flygans_Backend.Services.Categories;            // ✅ ADD
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -78,9 +86,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ---------- DEPENDENCY INJECTION ----------
+
+// AUTH
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// PRODUCTS
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
+
+// WISHLIST
+builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
+builder.Services.AddScoped<IWishlistService, WishlistService>();
+
+// CART
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<ICartService, CartService>();
+
+// ✅ CATEGORY
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
 
 // --------------------
 var app = builder.Build();
@@ -88,6 +115,7 @@ var app = builder.Build();
 // --------------------
 // MIDDLEWARE
 // --------------------
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -96,8 +124,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
- app.UseAuthentication();    // MUST come first  
- app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
