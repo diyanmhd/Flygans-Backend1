@@ -1,12 +1,16 @@
 ﻿using Flygans_Backend.Models;
 
-namespace Flygans_Backend.Repositories.Products;
-
-public interface IProductRepository
+namespace Flygans_Backend.Repositories.Products
 {
-    Task Add(Product product);
-    Task Save();
+    public interface IProductRepository
+    {
+        Task Add(Product product);
+        Task Save();
 
-    // ✅ GET ALL PRODUCTS
-    Task<List<Product>> GetAll();
+        // GET ALL PRODUCTS
+        Task<List<Product>> GetAll();
+
+        // 🔥 ADD THIS
+        Task<Product?> GetProductByIdAsync(int id);
+    }
 }

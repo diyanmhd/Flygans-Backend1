@@ -3,28 +3,30 @@ using Flygans_Backend.Repositories.Auth;
 using Flygans_Backend.Repositories.Products;
 using Flygans_Backend.Repositories.Wishlists;
 using Flygans_Backend.Repositories.Carts;
-using Flygans_Backend.Repositories.Categories;        // ✅ ADD
+using Flygans_Backend.Repositories.Orders;
+using Flygans_Backend.Repositories.Payments;
 using Flygans_Backend.Services.Auth;
 using Flygans_Backend.Services.Products;
 using Flygans_Backend.Services.Wishlists;
 using Flygans_Backend.Services.Carts;
-using Flygans_Backend.Services.Categories;            // ✅ ADD
+using Flygans_Backend.Services.Orders;
+using Flygans_Backend.Services.Payments;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --------------------
-// ADD SERVICES
-// --------------------
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// ---------- SWAGGER + JWT SUPPORT ----------
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -53,12 +55,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ---------- DATABASE ----------
 builder.Services.AddDbContext<FlyganDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ---------- JWT CONFIG ----------
 var jwt = builder.Configuration.GetSection("Jwt");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -73,10 +72,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
             ValidIssuer = jwt["Issuer"],
             ValidAudience = jwt["Audience"],
-
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwt["Key"]!)
             )
@@ -85,36 +82,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ---------- DEPENDENCY INJECTION ----------
-
-// AUTH
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// PRODUCTS
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 
-// WISHLIST
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 
-// CART
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartService, CartService>();
 
-// ✅ CATEGORY
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
-// --------------------
 var app = builder.Build();
-
-// --------------------
-// MIDDLEWARE
-// --------------------
 
 if (app.Environment.IsDevelopment())
 {

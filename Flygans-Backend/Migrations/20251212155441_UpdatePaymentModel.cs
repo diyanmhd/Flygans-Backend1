@@ -5,14 +5,14 @@
 namespace Flygans_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddUserRole : Migration
+    public partial class UpdatePaymentModel : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "Role",
-                table: "Users",
+                name: "OrderNumber",
+                table: "Payments",
                 type: "nvarchar(max)",
                 nullable: false,
                 defaultValue: "");
@@ -22,8 +22,8 @@ namespace Flygans_Backend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Role",
-                table: "Users");
+                name: "OrderNumber",
+                table: "Payments");
         }
     }
 }
