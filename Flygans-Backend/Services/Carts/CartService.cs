@@ -13,7 +13,6 @@ public class CartService : ICartService
         _repo = repo;
     }
 
-    // ✅ ADD TO CART
     public async Task AddToCart(int userId, int productId, int quantity)
     {
         var cart = await _repo.GetByUser(userId);
@@ -42,7 +41,6 @@ public class CartService : ICartService
         await _repo.Save();
     }
 
-    // ✅ REMOVE SINGLE ITEM
     public async Task RemoveFromCart(int userId, int productId)
     {
         var cart = await _repo.GetByUser(userId);
@@ -55,7 +53,6 @@ public class CartService : ICartService
         await _repo.Save();
     }
 
-    // ✅ GET CART ITEMS — SAFE DTO
     public async Task<List<CartItemDto>> GetCartItems(int userId)
     {
         var cart = await _repo.GetByUser(userId);
@@ -70,16 +67,12 @@ public class CartService : ICartService
             ProductId = i.ProductId,
             ProductName = i.Product.Name,
             Price = i.Product.Price,
-
-            // ✅ FIX: Category object → Category name string
             Category = i.Product.Category.Name,
-
             ImageUrl = i.Product.ImageUrl,
             Quantity = i.Quantity
         }).ToList();
     }
 
-    // ✅ UPDATE ITEM QUANTITY
     public async Task UpdateQuantity(int userId, int productId, int quantity)
     {
         var cart = await _repo.GetByUser(userId);
@@ -92,7 +85,6 @@ public class CartService : ICartService
         await _repo.Save();
     }
 
-    // ✅ CLEAR ENTIRE CART
     public async Task ClearCart(int userId)
     {
         var cart = await _repo.GetByUser(userId);

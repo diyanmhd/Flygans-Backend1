@@ -2,73 +2,68 @@
 using Flygans_Backend.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Flygans_Backend.Repositories.Carts;
-
-public class CartRepository : ICartRepository
+namespace Flygans_Backend.Repositories.Carts
 {
-    private readonly FlyganDbContext _context;
-
-    public CartRepository(FlyganDbContext context)
+    public class CartRepository : ICartRepository
     {
-        _context = context;
-    }
+        private readonly FlyganDbContext _context;
 
-    // ✅ Get cart by user (DO NOT LOAD USER)
-    public async Task<Cart?> GetByUser(int userId)
-    {
-        return await _context.Carts
-            .FirstOrDefaultAsync(c => c.UserId == userId);  // ✅ FIXED
-    }
-
-    // ✅ Create new cart
-    public async Task<Cart> Create(int userId)
-    {
-        var cart = new Cart
+        public CartRepository(FlyganDbContext context)
         {
-            UserId = userId
-        };
+            _context = context;
+        }
 
-        await _context.Carts.AddAsync(cart);
-        await _context.SaveChangesAsync();
+        public async Task<Cart?> GetByUser(int userId)
+        {
+            return await _context.Carts
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+        }
 
-        return cart;
-    }
+        public async Task<Cart> Create(int userId)
+        {
+            var cart = new Cart
+            {
+                UserId = userId
+            };
 
-    // ✅ Get a specific cart item
-    public async Task<CartItem?> GetItem(int cartId, int productId)
-    {
-        return await _context.CartItems
-            .FirstOrDefaultAsync(i =>
-                i.CartId == cartId &&
-                i.ProductId == productId
-            );
-    }
+            await _context.Carts.AddAsync(cart);
+            await _context.SaveChangesAsync();
 
-    // ✅ Add item to cart
-    public async Task AddItem(CartItem item)
-    {
-        await _context.CartItems.AddAsync(item);
-    }
+            return cart;
+        }
 
-    // ✅ Remove item from cart
-    public Task RemoveItem(CartItem item)
-    {
-        _context.CartItems.Remove(item);
-        return Task.CompletedTask;
-    }
+        public async Task<CartItem?> GetItem(int cartId, int productId)
+        {
+            return await _context.CartItems
+                .FirstOrDefaultAsync(i =>
+                    i.CartId == cartId &&
+                    i.ProductId == productId
+                );
+        }
 
-    // ✅ GET ALL ITEMS IN CART
-    public async Task<List<CartItem>> GetItemsByCart(int cartId)
-    {
-        return await _context.CartItems
-            .Include(i => i.Product)   // ✅ Only product data is needed
-            .Where(i => i.CartId == cartId)
-            .ToListAsync();
-    }
+        public async Task AddItem(CartItem item)
+        {
+            await _context.CartItems.AddAsync(item);
+        }
 
-    // ✅ Save changes
-    public async Task Save()
-    {
-        await _context.SaveChangesAsync();
+        public Task RemoveItem(CartItem item)
+        {
+            _context.CartItems.Remove(item);
+            return Task.CompletedTask;
+        }
+
+        public async Task<List<CartItem>> GetItemsByCart(int cartId)
+        {
+            return await _context.CartItems
+                .Include(i => i.Product)
+                .ThenInclude(p => p.Category)
+                .Where(i => i.CartId == cartId)
+                .ToListAsync();
+        }
+
+        public async Task Save()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

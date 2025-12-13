@@ -1,36 +1,35 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Flygans_Backend.Models;
-
-public class Order
+namespace Flygans_Backend.Models
 {
-    [Key]
-    public int Id { get; set; }
+    public class Order
+    {
+        [Key]
+        public int Id { get; set; }
 
-    [Required]
-    public string OrderNumber { get; set; } = string.Empty;
+        [Required]
+        public string OrderNumber { get; set; } = string.Empty;
 
-    [Required]
-    public int UserId { get; set; }
+        // FK → User
+        public int UserId { get; set; }
 
-    [Required]
-    public string DeliveryAddress { get; set; } = string.Empty;
+        [Required]
+        public string DeliveryAddress { get; set; } = string.Empty;
 
-    [Required]
-    public string PaymentMethod { get; set; } = string.Empty;
+        [Required]
+        public string PaymentMethod { get; set; } = string.Empty;
 
-    [Required]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public decimal TotalAmount { get; set; }
 
-    [Required]
-    public string Status { get; set; } = "Pending";
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [Column(TypeName = "decimal(18,2)")]
-    public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = "Pending";
 
-    public List<OrderItem> OrderItems { get; set; } = new();
+        // Order → OrderItems (1:N)
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
-    // 🔥 IMPORTANT: Add this
-    public Payment? Payment { get; set; }
+        // Order → Payment(s) (1:N)
+        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    }
 }

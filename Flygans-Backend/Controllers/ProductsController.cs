@@ -16,7 +16,6 @@ public class ProductsController : ControllerBase
         _service = service;
     }
 
-    // ✅ PUBLIC — GET ALL PRODUCTS
     [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetProducts()
@@ -25,12 +24,11 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
-    // ✅ ADMIN ONLY — ADD PRODUCT
     [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> AddProduct(CreateProductDto dto)
     {
         await _service.AddProduct(dto);
-        return Ok("Product Added Successfully ✅");
+        return Ok("Product Added Successfully");
     }
 }

@@ -1,5 +1,7 @@
 ﻿using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Wishlists;
+using Flygans_Backend.Dtos.Wishlist;
+using Flygans_Backend.Helpers;
 
 namespace Flygans_Backend.Services.Wishlists;
 
@@ -17,7 +19,7 @@ public class WishlistService : IWishlistService
         var exists = await _repo.GetByUserAndProduct(userId, productId);
 
         if (exists != null)
-            return; // already in wishlist
+            return;
 
         var wishlist = new Wishlist
         {
@@ -40,8 +42,29 @@ public class WishlistService : IWishlistService
         await _repo.Save();
     }
 
-    public async Task<List<Wishlist>> GetWishlist(int userId)
+    public async Task<ServiceResponse<List<WishlistDto>>> GetWishlist(int userId)
     {
-        return await _repo.GetByUser(userId);
+        var wishlistItems = await _repo.GetByUser(userId);
+
+        var data = wishlistItems.Select(w => new WishlistDto
+        {
+            Id = w.Id,
+            ProductId = w.ProductId,
+            Product = new ProductDto
+            {
+                Id = w.Product.Id,
+                Name = w.Product.Name,
+                Price = w.Product.Price,
+                StockQuantity = w.Product.StockQuantity,
+                ImageUrl = w.Product.ImageUrl
+            }
+        }).ToList();
+
+        return new ServiceResponse<List<WishlistDto>>
+        {
+            Success = true,
+            Message = "Wishlist fetched successfully",
+            Data = data
+        };
     }
 }

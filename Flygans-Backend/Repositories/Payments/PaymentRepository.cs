@@ -26,6 +26,13 @@ namespace Flygans_Backend.Repositories.Payments
                 .FirstOrDefaultAsync(p => p.OrderNumber == orderNumber);
         }
 
+        // ✅ NEW — Required for Razorpay confirmation
+        public async Task<Payment?> GetByRazorpayOrderIdAsync(string razorpayOrderId)
+        {
+            return await _context.Payments
+                .FirstOrDefaultAsync(p => p.RazorpayOrderId == razorpayOrderId);
+        }
+
         public async Task UpdateAsync(Payment payment)
         {
             _context.Payments.Update(payment);

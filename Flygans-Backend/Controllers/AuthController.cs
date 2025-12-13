@@ -1,4 +1,4 @@
-﻿using Flygans_Backend.DTOs.Auth;  // ✅ FIXED NAMESPACE
+﻿using Flygans_Backend.DTOs.Auth;
 using Flygans_Backend.Services.Auth;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,9 +15,6 @@ public class AuthController : ControllerBase
         _auth = auth;
     }
 
-    // ---------------------
-    // REGISTER
-    // ---------------------
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
@@ -31,9 +28,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    // ---------------------
-    // LOGIN
-    // ---------------------
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
@@ -47,9 +41,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    // ---------------------
-    // REFRESH TOKEN
-    // ---------------------
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh(RefreshTokenDto dto)
     {
@@ -63,9 +54,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    // ---------------------
-    // LOGOUT
-    // ---------------------
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(RefreshTokenDto dto)
     {

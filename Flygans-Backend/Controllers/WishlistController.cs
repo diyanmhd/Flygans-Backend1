@@ -7,7 +7,7 @@ namespace Flygans_Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]     // ✅ Only logged-in users can use wishlist
+[Authorize]
 public class WishlistController : ControllerBase
 {
     private readonly IWishlistService _service;
@@ -17,42 +17,56 @@ public class WishlistController : ControllerBase
         _service = service;
     }
 
-    // ✅ ADD TO WISHLIST
     [HttpPost("{productId}")]
     public async Task<IActionResult> Add(int productId)
     {
-        var userId = int.Parse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier)!
-        );
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized();
+
+        int userId = int.Parse(userIdClaim);
 
         await _service.AddToWishlist(userId, productId);
 
-        return Ok("Added to wishlist ✅");
+        return Ok(new
+        {
+            success = true,
+            message = "Added to wishlist successfully"
+        });
     }
 
-    // ✅ REMOVE FROM WISHLIST
     [HttpDelete("{productId}")]
     public async Task<IActionResult> Remove(int productId)
     {
-        var userId = int.Parse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier)!
-        );
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized();
+
+        int userId = int.Parse(userIdClaim);
 
         await _service.RemoveFromWishlist(userId, productId);
 
-        return Ok("Removed from wishlist ✅");
+        return Ok(new
+        {
+            success = true,
+            message = "Removed from wishlist successfully"
+        });
     }
 
-    // ✅ GET USER WISHLIST
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        var userId = int.Parse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier)!
-        );
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        var wishlist = await _service.GetWishlist(userId);
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized();
 
-        return Ok(wishlist);
+        int userId = int.Parse(userIdClaim);
+
+        var response = await _service.GetWishlist(userId);
+
+        return Ok(response);
     }
 }

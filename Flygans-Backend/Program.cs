@@ -20,13 +20,34 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers().AddJsonOptions(options =>
+// ----------------------------------------------------
+// ✅ CORS (ALLOW ALL FOR LOCAL TESTING)
+// ----------------------------------------------------
+builder.Services.AddCors(options =>
 {
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
+
+// ----------------------------------------------------
+// CONTROLLERS
+// ----------------------------------------------------
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 
+// ----------------------------------------------------
+// SWAGGER + JWT
+// ----------------------------------------------------
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -35,8 +56,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter: Bearer {your JWT token}"
+        In = ParameterLocation.Header
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -55,16 +75,25 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// ----------------------------------------------------
+// DATABASE
+// ----------------------------------------------------
 builder.Services.AddDbContext<FlyganDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    )
+);
 
+// ----------------------------------------------------
+// AUTH
+// ----------------------------------------------------
 var jwt = builder.Configuration.GetSection("Jwt");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.SaveToken = true;
         options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -82,6 +111,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// ----------------------------------------------------
+// DEPENDENCIES
+// ----------------------------------------------------
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -101,6 +133,9 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
+// ----------------------------------------------------
+// PIPELINE (ORDER IS CRITICAL)
+// ----------------------------------------------------
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -109,7 +144,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// ❌ DISABLED FOR LOCAL FRONTEND TESTING
+// app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseCors();   // ✅ AFTER routing, BEFORE auth
 
 app.UseAuthentication();
 app.UseAuthorization();

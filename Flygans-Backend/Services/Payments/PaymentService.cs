@@ -1,9 +1,7 @@
 ﻿using Flygans_Backend.DTOs.Payments;
 using Flygans_Backend.Helpers;
-using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Payments;
-using Microsoft.Extensions.Configuration;
 using Razorpay.Api;
 using System.Security.Cryptography;
 using System.Text;
@@ -28,8 +26,8 @@ namespace Flygans_Backend.Services.Payments
             _orderRepo = orderRepo;
         }
 
-        // 1️⃣ INITIATE PAYMENT
-        public async Task<ServiceResponse<PaymentResponseDto>> InitiatePaymentAsync(CreatePaymentRequestDto dto, int userId)
+        public async Task<ServiceResponse<PaymentResponseDto>> InitiatePaymentAsync(
+            CreatePaymentRequestDto dto, int userId)
         {
             var response = new ServiceResponse<PaymentResponseDto>();
 
@@ -37,7 +35,7 @@ namespace Flygans_Backend.Services.Payments
             if (order == null || order.UserId != userId)
             {
                 response.Success = false;
-                response.Message = "Order not found or unauthorized.";
+                response.Message = "Order not found or unauthorized";
                 return response;
             }
 
@@ -45,19 +43,18 @@ namespace Flygans_Backend.Services.Payments
 
             try
             {
-                RazorpayClient client = new RazorpayClient(_keyId, _keySecret);
+                var client = new RazorpayClient(_keyId, _keySecret);
 
                 var options = new Dictionary<string, object>
                 {
                     { "amount", amountInPaise },
                     { "currency", "INR" },
-                    { "receipt", $"order_{dto.OrderNumber}" },
-                    { "payment_capture", 1 }
+                    { "receipt", $"order_{dto.OrderNumber}" }
                 };
 
                 var razorOrder = client.Order.Create(options);
 
-                var payment = new Flygans_Backend.Models.Payment
+                var payment = new Models.Payment
                 {
                     OrderNumber = dto.OrderNumber,
                     RazorpayOrderId = razorOrder["id"],
@@ -67,93 +64,72 @@ namespace Flygans_Backend.Services.Payments
 
                 await _paymentRepo.CreateAsync(payment);
 
+                response.Message = "Payment initiated successfully";
                 response.Data = new PaymentResponseDto
                 {
-                    OrderNumber = dto.OrderNumber,
+                    OrderNumber = payment.OrderNumber,
                     RazorpayOrderId = payment.RazorpayOrderId,
-                    AmountInPaise = amountInPaise,
-                    Paid = false,
-                    Message = "Payment initiated successfully"
+                    AmountInPaise = payment.AmountInPaise
                 };
 
                 return response;
             }
-            catch (Exception ex)
+            catch
             {
                 response.Success = false;
-                response.Message = ex.Message;
-
-                response.Data = new PaymentResponseDto
-                {
-                    Message = ex.InnerException?.Message // ⭐ Return actual SQL error
-                };
-
+                response.Message = "Failed to initiate payment";
                 return response;
             }
         }
 
-        // 2️⃣ CONFIRM PAYMENT
-        public async Task<ServiceResponse<PaymentResponseDto>> ConfirmPaymentAsync(PaymentConfirmationDto dto)
+        public async Task<ServiceResponse<PaymentResponseDto>> ConfirmPaymentAsync(
+            PaymentConfirmationDto dto)
         {
             var response = new ServiceResponse<PaymentResponseDto>();
 
-            try
-            {
-                string payload = dto.RazorpayOrderId + "|" + dto.RazorpayPaymentId;
+            string payload = $"{dto.RazorpayOrderId}|{dto.RazorpayPaymentId}";
 
-                using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_keySecret));
-                var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
-                string generatedSignature = BitConverter.ToString(hash).Replace("-", "").ToLower();
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_keySecret));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
+            var generatedSignature = BitConverter
+                .ToString(hash)
+                .Replace("-", "")
+                .ToLower();
 
-                if (generatedSignature != dto.RazorpaySignature)
-                {
-                    response.Success = false;
-                    response.Message = "Invalid signature!";
-                    return response;
-                }
-
-                var payment = await _paymentRepo.GetByOrderNumberAsync(dto.OrderNumber);
-                if (payment == null)
-                {
-                    response.Success = false;
-                    response.Message = "Payment record not found.";
-                    return response;
-                }
-
-                payment.RazorpayPaymentId = dto.RazorpayPaymentId;
-                payment.RazorpaySignature = dto.RazorpaySignature;
-                payment.Status = "Paid";
-
-                await _paymentRepo.UpdateAsync(payment);
-
-                response.Data = new PaymentResponseDto
-                {
-                    OrderNumber = dto.OrderNumber,
-                    RazorpayOrderId = dto.RazorpayOrderId,
-                    RazorpayPaymentId = dto.RazorpayPaymentId,
-                    AmountInPaise = payment.AmountInPaise,
-                    Paid = true,
-                    Message = "Payment verified successfully"
-                };
-
-                return response;
-            }
-            catch (Exception ex)
+            if (generatedSignature != dto.RazorpaySignature)
             {
                 response.Success = false;
-                response.Message = "Signature verification failed: " + ex.Message;
-
-                response.Data = new PaymentResponseDto
-                {
-                    Message = ex.InnerException?.Message // ⭐ Actual SQL error
-                };
-
+                response.Message = "Invalid Razorpay signature";
                 return response;
             }
+
+            var payment = await _paymentRepo.GetByRazorpayOrderIdAsync(dto.RazorpayOrderId);
+            if (payment == null)
+            {
+                response.Success = false;
+                response.Message = "Payment record not found";
+                return response;
+            }
+
+            payment.RazorpayPaymentId = dto.RazorpayPaymentId;
+            payment.RazorpaySignature = dto.RazorpaySignature;
+            payment.Status = "Paid";
+
+            await _paymentRepo.UpdateAsync(payment);
+
+            response.Message = "Payment confirmed successfully";
+            response.Data = new PaymentResponseDto
+            {
+                OrderNumber = payment.OrderNumber,
+                RazorpayOrderId = payment.RazorpayOrderId,
+                AmountInPaise = payment.AmountInPaise
+            };
+
+            return response;
         }
 
-        // 3️⃣ GET PAYMENT BY ORDER NUMBER
-        public async Task<ServiceResponse<PaymentResponseDto>> GetPaymentByOrderNumberAsync(string orderNumber)
+        public async Task<ServiceResponse<PaymentResponseDto>> GetPaymentByOrderNumberAsync(
+            string orderNumber)
         {
             var response = new ServiceResponse<PaymentResponseDto>();
 
@@ -161,18 +137,16 @@ namespace Flygans_Backend.Services.Payments
             if (payment == null)
             {
                 response.Success = false;
-                response.Message = "No payment found for this order.";
+                response.Message = "Payment not found";
                 return response;
             }
 
+            response.Message = "Payment fetched successfully";
             response.Data = new PaymentResponseDto
             {
-                OrderNumber = orderNumber,
+                OrderNumber = payment.OrderNumber,
                 RazorpayOrderId = payment.RazorpayOrderId,
-                RazorpayPaymentId = payment.RazorpayPaymentId,
-                AmountInPaise = payment.AmountInPaise,
-                Paid = payment.Status == "Paid",
-                Message = "Payment details retrieved"
+                AmountInPaise = payment.AmountInPaise
             };
 
             return response;

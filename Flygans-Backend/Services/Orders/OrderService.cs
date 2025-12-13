@@ -22,9 +22,6 @@ namespace Flygans_Backend.Services.Orders
             return "ORD" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
 
-        // --------------------------------------------------------------------
-        // CREATE ORDER
-        // --------------------------------------------------------------------
         public async Task<ServiceResponse<OrderResponseDto>> CreateOrderAsync(int userId, CreateOrderDto dto)
         {
             var response = new ServiceResponse<OrderResponseDto>();
@@ -75,9 +72,6 @@ namespace Flygans_Backend.Services.Orders
             return response;
         }
 
-        // --------------------------------------------------------------------
-        // GET ALL ORDERS FOR USER
-        // --------------------------------------------------------------------
         public async Task<ServiceResponse<List<OrderResponseDto>>> GetOrdersByUserIdAsync(int userId)
         {
             var response = new ServiceResponse<List<OrderResponseDto>>();
@@ -88,9 +82,6 @@ namespace Flygans_Backend.Services.Orders
             return response;
         }
 
-        // --------------------------------------------------------------------
-        // GET SINGLE ORDER
-        // --------------------------------------------------------------------
         public async Task<ServiceResponse<OrderResponseDto>> GetOrderByIdAsync(int orderId, int userId)
         {
             var response = new ServiceResponse<OrderResponseDto>();
@@ -114,9 +105,6 @@ namespace Flygans_Backend.Services.Orders
             return response;
         }
 
-        // --------------------------------------------------------------------
-        // HELPER: MAP ORDER ENTITY → DTO
-        // --------------------------------------------------------------------
         private OrderResponseDto MapOrderToDto(Order order)
         {
             return new OrderResponseDto

@@ -10,7 +10,6 @@ public class CreateProductDto
     [Range(1, 100000)]
     public decimal Price { get; set; }
 
-    // ✅ FIXED: Use CategoryId instead of Category string
     [Required]
     public int CategoryId { get; set; }
 

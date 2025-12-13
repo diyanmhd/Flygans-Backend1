@@ -17,9 +17,6 @@ public class AuthService : IAuthService
         _jwt = jwt;
     }
 
-    // ---------------------
-    // REGISTER
-    // ---------------------
     public async Task<string> Register(RegisterDto dto)
     {
         var exists = await _repo.GetByEmail(dto.Email);
@@ -32,10 +29,7 @@ public class AuthService : IAuthService
             FullName = dto.FullName,
             Email = dto.Email,
             PasswordHash = Hash(dto.Password),
-
-            // ✅ ADD ROLE HERE
             Role = "Admin",
-
             RefreshToken = null,
             RefreshTokenExpiryTime = null
         };
@@ -46,9 +40,6 @@ public class AuthService : IAuthService
         return "Registration successful";
     }
 
-    // ---------------------
-    // LOGIN
-    // ---------------------
     public async Task<LoginResponseDto> Login(LoginDto dto)
     {
         var user = await _repo.GetByEmail(dto.Email);
@@ -59,7 +50,6 @@ public class AuthService : IAuthService
         var accessToken = _jwt.CreateToken(user);
         var refreshToken = _jwt.GenerateRefreshToken();
 
-        // ✅ Save refresh token to DB
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
@@ -76,9 +66,6 @@ public class AuthService : IAuthService
         };
     }
 
-    // ---------------------
-    // REFRESH TOKEN
-    // ---------------------
     public async Task<LoginResponseDto> Refresh(string refreshToken)
     {
         var user = await _repo.GetByRefreshToken(refreshToken);
@@ -102,9 +89,6 @@ public class AuthService : IAuthService
         };
     }
 
-    // ---------------------
-    // LOGOUT
-    // ---------------------
     public async Task Logout(string refreshToken)
     {
         var user = await _repo.GetByRefreshToken(refreshToken);

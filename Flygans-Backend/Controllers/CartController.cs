@@ -17,7 +17,6 @@ public class CartController : ControllerBase
         _service = service;
     }
 
-    // ✅ ADD TO CART
     [HttpPost("{productId}")]
     public async Task<IActionResult> Add(int productId, [FromQuery] int quantity = 1)
     {
@@ -25,10 +24,9 @@ public class CartController : ControllerBase
 
         await _service.AddToCart(userId, productId, quantity);
 
-        return Ok("Item added to cart ✅");
+        return Ok("Item added to cart");
     }
 
-    // ✅ UPDATE ITEM QUANTITY
     [HttpPut("{productId}")]
     public async Task<IActionResult> UpdateQuantity(int productId, [FromQuery] int quantity)
     {
@@ -36,10 +34,9 @@ public class CartController : ControllerBase
 
         await _service.UpdateQuantity(userId, productId, quantity);
 
-        return Ok("Quantity updated ✅");
+        return Ok("Quantity updated");
     }
 
-    // ✅ REMOVE SINGLE ITEM
     [HttpDelete("{productId}")]
     public async Task<IActionResult> Remove(int productId)
     {
@@ -47,10 +44,9 @@ public class CartController : ControllerBase
 
         await _service.RemoveFromCart(userId, productId);
 
-        return Ok("Item removed from cart ✅");
+        return Ok("Item removed from cart");
     }
 
-    // ✅ CLEAR ENTIRE CART
     [HttpDelete]
     public async Task<IActionResult> Clear()
     {
@@ -58,10 +54,9 @@ public class CartController : ControllerBase
 
         await _service.ClearCart(userId);
 
-        return Ok("Cart cleared ✅");
+        return Ok("Cart cleared");
     }
 
-    // ✅ GET USER CART
     [HttpGet]
     public async Task<IActionResult> Get()
     {

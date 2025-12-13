@@ -26,7 +26,6 @@ namespace Flygans_Backend.Controllers
             );
         }
 
-        // CREATE ORDER
         [HttpPost("checkout")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
         {
@@ -39,7 +38,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // GET ALL ORDERS FOR LOGGED-IN USER
         [HttpGet("my-orders")]
         public async Task<IActionResult> GetMyOrders()
         {
@@ -48,7 +46,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // GET A SPECIFIC ORDER
         [HttpGet("{orderId}")]
         public async Task<IActionResult> GetOrderById(int orderId)
         {

@@ -1,19 +1,19 @@
 ﻿using Flygans_Backend.Models;
 
-namespace Flygans_Backend.Repositories.Carts;
-
-public interface ICartRepository
+namespace Flygans_Backend.Repositories.Carts
 {
-    Task<Cart?> GetByUser(int userId);
-    Task<Cart> Create(int userId);
+    public interface ICartRepository
+    {
+        Task<Cart?> GetByUser(int userId);
+        Task<Cart> Create(int userId);
 
-    Task<CartItem?> GetItem(int cartId, int productId);
+        Task<CartItem?> GetItem(int cartId, int productId);
 
-    Task AddItem(CartItem item);
-    Task RemoveItem(CartItem item);
+        Task AddItem(CartItem item);
+        Task RemoveItem(CartItem item);
 
-    // ✅ ADD THIS
-    Task<List<CartItem>> GetItemsByCart(int cartId);
+        Task<List<CartItem>> GetItemsByCart(int cartId);
 
-    Task Save();
+        Task Save();
+    }
 }
