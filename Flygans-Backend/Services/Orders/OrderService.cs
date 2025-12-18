@@ -3,6 +3,7 @@ using Flygans_Backend.Helpers;
 using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Products;
+using Flygans_Backend.Repositories.Carts;
 
 namespace Flygans_Backend.Services.Orders
 {
@@ -10,11 +11,16 @@ namespace Flygans_Backend.Services.Orders
     {
         private readonly IOrderRepository _orderRepo;
         private readonly IProductRepository _productRepo;
+        private readonly ICartRepository _cartRepo;
 
-        public OrderService(IOrderRepository orderRepo, IProductRepository productRepo)
+        public OrderService(
+            IOrderRepository orderRepo,
+            IProductRepository productRepo,
+            ICartRepository cartRepo)
         {
             _orderRepo = orderRepo;
             _productRepo = productRepo;
+            _cartRepo = cartRepo;
         }
 
         private string GenerateOrderNumber()
@@ -26,6 +32,35 @@ namespace Flygans_Backend.Services.Orders
         {
             var response = new ServiceResponse<OrderResponseDto>();
 
+            // Get user's cart
+            var cart = await _cartRepo.GetByUser(userId);
+            if (cart == null)
+            {
+                response.Success = false;
+                response.Message = "Your cart is empty. Add items to cart before checkout.";
+                return response;
+            }
+
+            var cartItems = await _cartRepo.GetItemsByCart(cart.Id);
+
+            // VALIDATION → ORDER MUST MATCH CART EXACTLY
+            foreach (var orderItem in dto.Items)
+            {
+                var matchingCartItem = cartItems.FirstOrDefault(c =>
+                    c.ProductId == orderItem.ProductId &&
+                    c.Quantity == orderItem.Quantity
+                );
+
+                if (matchingCartItem == null)
+                {
+                    response.Success = false;
+                    response.Message = "You can only checkout items already in your cart.";
+                    return response;
+                }
+            }
+
+            // If we reach here → Items match cart
+            // Build and save order
             var order = new Order
             {
                 UserId = userId,
@@ -43,21 +78,12 @@ namespace Flygans_Backend.Services.Orders
             {
                 var product = await _productRepo.GetProductByIdAsync(item.ProductId);
 
-                if (product == null)
-                {
-                    response.Success = false;
-                    response.Message = $"Product not found with ID {item.ProductId}";
-                    return response;
-                }
-
-                var orderItem = new OrderItem
+                order.OrderItems.Add(new OrderItem
                 {
                     ProductId = product.Id,
                     Quantity = item.Quantity,
                     UnitPrice = product.Price
-                };
-
-                order.OrderItems.Add(orderItem);
+                });
 
                 totalAmount += product.Price * item.Quantity;
             }
@@ -66,20 +92,32 @@ namespace Flygans_Backend.Services.Orders
 
             var savedOrder = await _orderRepo.CreateOrderAsync(order);
 
+            // REMOVE ITEMS FROM CART
+            foreach (var orderItem in dto.Items)
+            {
+                var matchingCartItem = cartItems
+                    .First(c => c.ProductId == orderItem.ProductId &&
+                                c.Quantity == orderItem.Quantity);
+
+                await _cartRepo.RemoveItem(matchingCartItem);
+            }
+
+            await _cartRepo.Save();
+
             response.Data = MapOrderToDto(savedOrder);
-            response.Message = "Order created successfully";
+            response.Message = "Order placed successfully.";
 
             return response;
         }
 
         public async Task<ServiceResponse<List<OrderResponseDto>>> GetOrdersByUserIdAsync(int userId)
         {
-            var response = new ServiceResponse<List<OrderResponseDto>>();
-
             var orders = await _orderRepo.GetOrdersByUserIdAsync(userId);
 
-            response.Data = orders.Select(o => MapOrderToDto(o)).ToList();
-            return response;
+            return new ServiceResponse<List<OrderResponseDto>>
+            {
+                Data = orders.Select(MapOrderToDto).ToList()
+            };
         }
 
         public async Task<ServiceResponse<OrderResponseDto>> GetOrderByIdAsync(int orderId, int userId)

@@ -29,7 +29,7 @@ public class AuthService : IAuthService
             FullName = dto.FullName,
             Email = dto.Email,
             PasswordHash = Hash(dto.Password),
-            Role = "Admin",
+            Role = "user",
             RefreshToken = null,
             RefreshTokenExpiryTime = null
         };

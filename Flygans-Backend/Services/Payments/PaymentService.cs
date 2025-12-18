@@ -26,37 +26,67 @@ namespace Flygans_Backend.Services.Payments
             _orderRepo = orderRepo;
         }
 
+        // ===============================
+        // INITIATE PAYMENT (FIXED)
+        // ===============================
         public async Task<ServiceResponse<PaymentResponseDto>> InitiatePaymentAsync(
             CreatePaymentRequestDto dto, int userId)
         {
             var response = new ServiceResponse<PaymentResponseDto>();
 
+            // 1️⃣ Get order from DB
             var order = await _orderRepo.GetOrderByOrderNumberAsync(dto.OrderNumber);
-            if (order == null || order.UserId != userId)
+            if (order == null)
             {
                 response.Success = false;
-                response.Message = "Order not found or unauthorized";
+                response.Message = "Order not found";
                 return response;
             }
 
-            long amountInPaise = (long)(dto.Amount * 100);
+            // 2️⃣ Check order ownership
+            if (order.UserId != userId)
+            {
+                response.Success = false;
+                response.Message = "Unauthorized order access";
+                return response;
+            }
+
+            // 3️⃣ Check order status
+            if (order.Status == "Paid")
+            {
+                response.Success = false;
+                response.Message = "Order already paid";
+                return response;
+            }
+
+            // 4️⃣ Calculate amount ONLY from DB
+            if (order.TotalAmount <= 0)
+            {
+                response.Success = false;
+                response.Message = "Invalid order amount";
+                return response;
+            }
+
+            long amountInPaise = (long)(order.TotalAmount * 100);
 
             try
             {
+                // 5️⃣ Create Razorpay order
                 var client = new RazorpayClient(_keyId, _keySecret);
 
                 var options = new Dictionary<string, object>
                 {
                     { "amount", amountInPaise },
                     { "currency", "INR" },
-                    { "receipt", $"order_{dto.OrderNumber}" }
+                    { "receipt", $"order_{order.OrderNumber}" }
                 };
 
                 var razorOrder = client.Order.Create(options);
 
+                // 6️⃣ Save payment record
                 var payment = new Models.Payment
                 {
-                    OrderNumber = dto.OrderNumber,
+                    OrderNumber = order.OrderNumber,
                     RazorpayOrderId = razorOrder["id"],
                     AmountInPaise = amountInPaise,
                     Status = "Pending"
@@ -82,6 +112,9 @@ namespace Flygans_Backend.Services.Payments
             }
         }
 
+        // ===============================
+        // CONFIRM PAYMENT (OK)
+        // ===============================
         public async Task<ServiceResponse<PaymentResponseDto>> ConfirmPaymentAsync(
             PaymentConfirmationDto dto)
         {
@@ -128,6 +161,9 @@ namespace Flygans_Backend.Services.Payments
             return response;
         }
 
+        // ===============================
+        // GET PAYMENT
+        // ===============================
         public async Task<ServiceResponse<PaymentResponseDto>> GetPaymentByOrderNumberAsync(
             string orderNumber)
         {

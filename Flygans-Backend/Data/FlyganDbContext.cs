@@ -23,26 +23,17 @@ namespace Flygans_Backend.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // ------------------------------
-            // ORDER CONFIG
-            // ------------------------------
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.OrderNumber)
                 .IsUnique();
 
-            // ------------------------------
-            // PAYMENT CONFIG (NEW FK)
-            // ------------------------------
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Order)
-                .WithMany(o => o.Payments)         // 1 → Many Payments
-                .HasForeignKey(p => p.OrderNumber) // FK is OrderNumber
+                .WithMany(o => o.Payments)
+                .HasForeignKey(p => p.OrderNumber)
                 .HasPrincipalKey(o => o.OrderNumber)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ------------------------------
-            // ORDER ITEM CONFIG
-            // ------------------------------
             modelBuilder.Entity<OrderItem>()
                 .HasOne(i => i.Order)
                 .WithMany(o => o.OrderItems)
@@ -55,9 +46,6 @@ namespace Flygans_Backend.Data
                 .HasForeignKey(i => i.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ------------------------------
-            // CART ITEM CONFIG
-            // ------------------------------
             modelBuilder.Entity<CartItem>()
                 .HasOne(i => i.Cart)
                 .WithMany()
@@ -70,9 +58,6 @@ namespace Flygans_Backend.Data
                 .HasForeignKey(i => i.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ------------------------------
-            // WISHLIST CONFIG
-            // ------------------------------
             modelBuilder.Entity<Wishlist>()
                 .HasOne(w => w.Product)
                 .WithMany()
