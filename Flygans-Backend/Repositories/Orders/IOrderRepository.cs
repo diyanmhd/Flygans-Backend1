@@ -7,8 +7,10 @@ namespace Flygans_Backend.Repositories.Orders
         Task<Order> CreateOrderAsync(Order order);
         Task<List<Order>> GetOrdersByUserIdAsync(int userId);
         Task<Order?> GetOrderByIdAsync(int orderId);
-
-        // NEW METHOD
         Task<Order?> GetOrderByOrderNumberAsync(string orderNumber);
+
+        Task<List<Order>> GetAllOrders();              // existing admin
+        Task<bool> DeleteOrder(int orderId);           // NEW
+        Task<bool> UpdateOrderStatus(int orderId, OrderStatus status); // NEW
     }
 }

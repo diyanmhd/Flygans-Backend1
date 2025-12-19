@@ -23,10 +23,17 @@ namespace Flygans_Backend.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // 🎯 Store OrderStatus enum as int in database
+            modelBuilder.Entity<Order>()
+                .Property(o => o.Status)
+                .HasConversion<int>();
+
+            // 🎯 Ensure OrderNumber is unique
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.OrderNumber)
                 .IsUnique();
 
+            // 🎯 Payment linked to Order via OrderNumber (string key)
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Order)
                 .WithMany(o => o.Payments)
@@ -34,6 +41,7 @@ namespace Flygans_Backend.Data
                 .HasPrincipalKey(o => o.OrderNumber)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // 🎯 OrderItems relations
             modelBuilder.Entity<OrderItem>()
                 .HasOne(i => i.Order)
                 .WithMany(o => o.OrderItems)
@@ -46,6 +54,7 @@ namespace Flygans_Backend.Data
                 .HasForeignKey(i => i.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // 🎯 CartItems relations
             modelBuilder.Entity<CartItem>()
                 .HasOne(i => i.Cart)
                 .WithMany()
@@ -58,6 +67,7 @@ namespace Flygans_Backend.Data
                 .HasForeignKey(i => i.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // 🎯 Wishlist relations
             modelBuilder.Entity<Wishlist>()
                 .HasOne(w => w.Product)
                 .WithMany()

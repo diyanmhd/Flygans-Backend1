@@ -1,102 +1,126 @@
 ﻿using Flygans_Backend.DTOs.Cart;
 using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Carts;
+using Flygans_Backend.Repositories.Users;
 
-namespace Flygans_Backend.Services.Carts;
-
-public class CartService : ICartService
+namespace Flygans_Backend.Services.Carts
 {
-    private readonly ICartRepository _repo;
-
-    public CartService(ICartRepository repo)
+    public class CartService : ICartService
     {
-        _repo = repo;
-    }
+        private readonly ICartRepository _repo;
+        private readonly IAdminUserRepository _userRepo;
 
-    public async Task AddToCart(int userId, int productId, int quantity)
-    {
-        var cart = await _repo.GetByUser(userId);
-
-        if (cart == null)
-            cart = await _repo.Create(userId);
-
-        var item = await _repo.GetItem(cart.Id, productId);
-
-        if (item != null)
+        public CartService(ICartRepository repo, IAdminUserRepository userRepo)
         {
-            item.Quantity += quantity;
+            _repo = repo;
+            _userRepo = userRepo;
         }
-        else
+
+        private async Task ValidateUser(int userId)
         {
-            item = new CartItem
+            var user = await _userRepo.GetUserByIdAsync(userId);
+
+            if (user == null || user.IsDeleted)
+                throw new Exception("This account was deleted by an admin.");
+
+            if (user.IsBlocked)
+                throw new Exception("Your account is blocked. Contact admin.");
+        }
+
+        public async Task AddToCart(int userId, int productId, int quantity)
+        {
+            await ValidateUser(userId);
+
+            var cart = await _repo.GetByUser(userId);
+
+            if (cart == null)
+                cart = await _repo.Create(userId);
+
+            var item = await _repo.GetItem(cart.Id, productId);
+
+            if (item != null)
             {
-                CartId = cart.Id,
-                ProductId = productId,
-                Quantity = quantity
-            };
+                item.Quantity += quantity;
+            }
+            else
+            {
+                item = new CartItem
+                {
+                    CartId = cart.Id,
+                    ProductId = productId,
+                    Quantity = quantity
+                };
 
-            await _repo.AddItem(item);
+                await _repo.AddItem(item);
+            }
+
+            await _repo.Save();
         }
 
-        await _repo.Save();
-    }
-
-    public async Task RemoveFromCart(int userId, int productId)
-    {
-        var cart = await _repo.GetByUser(userId);
-        if (cart == null) return;
-
-        var item = await _repo.GetItem(cart.Id, productId);
-        if (item == null) return;
-
-        await _repo.RemoveItem(item);
-        await _repo.Save();
-    }
-
-    public async Task<List<CartItemDto>> GetCartItems(int userId)
-    {
-        var cart = await _repo.GetByUser(userId);
-
-        if (cart == null)
-            return new List<CartItemDto>();
-
-        var items = await _repo.GetItemsByCart(cart.Id);
-
-        return items.Select(i => new CartItemDto
+        public async Task RemoveFromCart(int userId, int productId)
         {
-            ProductId = i.ProductId,
-            ProductName = i.Product.Name,
-            Price = i.Product.Price,
-            Category = i.Product.Category.Name,
-            ImageUrl = i.Product.ImageUrl,
-            Quantity = i.Quantity
-        }).ToList();
-    }
+            await ValidateUser(userId);
 
-    public async Task UpdateQuantity(int userId, int productId, int quantity)
-    {
-        var cart = await _repo.GetByUser(userId);
-        if (cart == null) return;
+            var cart = await _repo.GetByUser(userId);
+            if (cart == null) return;
 
-        var item = await _repo.GetItem(cart.Id, productId);
-        if (item == null) return;
+            var item = await _repo.GetItem(cart.Id, productId);
+            if (item == null) return;
 
-        item.Quantity = quantity;
-        await _repo.Save();
-    }
-
-    public async Task ClearCart(int userId)
-    {
-        var cart = await _repo.GetByUser(userId);
-        if (cart == null) return;
-
-        var items = await _repo.GetItemsByCart(cart.Id);
-
-        foreach (var item in items)
-        {
             await _repo.RemoveItem(item);
+            await _repo.Save();
         }
 
-        await _repo.Save();
+        public async Task<List<CartItemDto>> GetCartItems(int userId)
+        {
+            await ValidateUser(userId);
+
+            var cart = await _repo.GetByUser(userId);
+            if (cart == null)
+                return new List<CartItemDto>();
+
+            var items = await _repo.GetItemsByCart(cart.Id);
+
+            return items.Select(i => new CartItemDto
+            {
+                ProductId = i.ProductId,
+                ProductName = i.Product.Name,
+                Price = i.Product.Price,
+                Category = i.Product.Category.Name,
+                ImageUrl = i.Product.ImageUrl,
+                Quantity = i.Quantity
+            }).ToList();
+        }
+
+        public async Task UpdateQuantity(int userId, int productId, int quantity)
+        {
+            await ValidateUser(userId);
+
+            var cart = await _repo.GetByUser(userId);
+            if (cart == null) return;
+
+            var item = await _repo.GetItem(cart.Id, productId);
+            if (item == null) return;
+
+            item.Quantity = quantity;
+            await _repo.Save();
+        }
+
+        public async Task ClearCart(int userId)
+        {
+            await ValidateUser(userId);
+
+            var cart = await _repo.GetByUser(userId);
+            if (cart == null) return;
+
+            var items = await _repo.GetItemsByCart(cart.Id);
+
+            foreach (var item in items)
+            {
+                await _repo.RemoveItem(item);
+            }
+
+            await _repo.Save();
+        }
     }
 }

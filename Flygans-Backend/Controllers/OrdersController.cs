@@ -1,4 +1,5 @@
 ﻿using Flygans_Backend.DTOs.Orders;
+using Flygans_Backend.Models;
 using Flygans_Backend.Services.Orders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -51,6 +52,41 @@ namespace Flygans_Backend.Controllers
         {
             int userId = GetUserId();
             var response = await _orderService.GetOrderByIdAsync(orderId, userId);
+
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+
+        // ⭐ ADMIN: GET ALL
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllOrders()
+        {
+            var response = await _orderService.GetAllOrders();
+            return Ok(response);
+        }
+
+        // ⭐ ADMIN: DELETE ORDER
+        [HttpDelete("{orderId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteOrder(int orderId)
+        {
+            var response = await _orderService.DeleteOrder(orderId);
+
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+
+        // ⭐ ADMIN: UPDATE STATUS
+        [HttpPatch("{orderId}/status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] OrderStatus status)
+        {
+            var response = await _orderService.UpdateOrderStatus(orderId, status);
 
             if (!response.Success)
                 return BadRequest(response);

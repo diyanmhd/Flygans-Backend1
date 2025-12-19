@@ -1,35 +1,33 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Flygans_Backend.Models
 {
     public class Order
     {
-        [Key]
-        public int Id { get; set; }
+        public int Id { get; set; } // PRIMARY KEY
 
-        [Required]
-        public string OrderNumber { get; set; } = string.Empty;
+        public string OrderNumber { get; set; } = string.Empty; // Razorpay tracking
 
-        // FK → User
-        public int UserId { get; set; }
-
-        [Required]
         public string DeliveryAddress { get; set; } = string.Empty;
 
-        [Required]
         public string PaymentMethod { get; set; } = string.Empty;
 
         public decimal TotalAmount { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public string Status { get; set; } = "Pending";
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
-        // Order → OrderItems (1:N)
-        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        // Navigation → OrderItems
+        public List<OrderItem> OrderItems { get; set; } = new();
 
-        // Order → Payment(s) (1:N)
-        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+        // FK → Users.Id
+        public int UserId { get; set; }
+        public User User { get; set; } = null!;
+
+        // Navigation → Payments (FK is Payment.OrderId)
+        public List<Payment> Payments { get; set; } = new();
     }
 }

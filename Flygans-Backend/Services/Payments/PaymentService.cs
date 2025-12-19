@@ -1,5 +1,6 @@
 ﻿using Flygans_Backend.DTOs.Payments;
 using Flygans_Backend.Helpers;
+using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Payments;
 using Razorpay.Api;
@@ -52,7 +53,7 @@ namespace Flygans_Backend.Services.Payments
             }
 
             // 3️⃣ Check order status
-            if (order.Status == "Paid")
+            if (order.Status == OrderStatus.Pending)
             {
                 response.Success = false;
                 response.Message = "Order already paid";

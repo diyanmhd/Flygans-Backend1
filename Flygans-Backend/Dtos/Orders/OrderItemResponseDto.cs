@@ -1,4 +1,6 @@
-﻿namespace Flygans_Backend.DTOs.Orders
+﻿using Flygans_Backend.Models;
+
+namespace Flygans_Backend.DTOs.Orders
 {
     public class OrderItemResponseDto
     {
@@ -7,5 +9,16 @@
         public decimal UnitPrice { get; set; }
         public int Quantity { get; set; }
         public decimal TotalPrice => UnitPrice * Quantity;
+
+        // REQUIRED CONSTRUCTOR
+        public OrderItemResponseDto(OrderItem item)
+        {
+            ProductId = item.ProductId;
+            ProductName = item.Product.Name;
+            UnitPrice = item.UnitPrice;
+            Quantity = item.Quantity;
+        }
+
+        public OrderItemResponseDto() { }
     }
 }

@@ -1,111 +1,99 @@
 ﻿using Flygans_Backend.DTOs.Orders;
 using Flygans_Backend.Helpers;
 using Flygans_Backend.Models;
+using Flygans_Backend.Repositories.Carts;
 using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Products;
-using Flygans_Backend.Repositories.Carts;
+using Flygans_Backend.Repositories.Users;
 
 namespace Flygans_Backend.Services.Orders
 {
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepo;
-        private readonly IProductRepository _productRepo;
         private readonly ICartRepository _cartRepo;
+        private readonly IProductRepository _productRepo;
+        private readonly IAdminUserRepository _userRepo;
 
         public OrderService(
             IOrderRepository orderRepo,
+            ICartRepository cartRepo,
             IProductRepository productRepo,
-            ICartRepository cartRepo)
+            IAdminUserRepository userRepo)
         {
             _orderRepo = orderRepo;
-            _productRepo = productRepo;
             _cartRepo = cartRepo;
-        }
-
-        private string GenerateOrderNumber()
-        {
-            return "ORD" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _productRepo = productRepo;
+            _userRepo = userRepo;
         }
 
         public async Task<ServiceResponse<OrderResponseDto>> CreateOrderAsync(int userId, CreateOrderDto dto)
         {
             var response = new ServiceResponse<OrderResponseDto>();
 
-            // Get user's cart
+            var user = await _userRepo.GetUserByIdAsync(userId);
+
+            if (user == null || user.IsDeleted)
+            {
+                response.Success = false;
+                response.Message = "This account was deleted by an admin.";
+                return response;
+            }
+
+            if (user.IsBlocked)
+            {
+                response.Success = false;
+                response.Message = "Your account is blocked. Contact admin.";
+                return response;
+            }
+
             var cart = await _cartRepo.GetByUser(userId);
+
             if (cart == null)
             {
                 response.Success = false;
-                response.Message = "Your cart is empty. Add items to cart before checkout.";
+                response.Message = "Your cart is empty.";
                 return response;
             }
 
             var cartItems = await _cartRepo.GetItemsByCart(cart.Id);
 
-            // VALIDATION → ORDER MUST MATCH CART EXACTLY
-            foreach (var orderItem in dto.Items)
+            if (!cartItems.Any())
             {
-                var matchingCartItem = cartItems.FirstOrDefault(c =>
-                    c.ProductId == orderItem.ProductId &&
-                    c.Quantity == orderItem.Quantity
-                );
-
-                if (matchingCartItem == null)
-                {
-                    response.Success = false;
-                    response.Message = "You can only checkout items already in your cart.";
-                    return response;
-                }
+                response.Success = false;
+                response.Message = "Your cart is empty.";
+                return response;
             }
 
-            // If we reach here → Items match cart
-            // Build and save order
+            // Create order
             var order = new Order
             {
                 UserId = userId,
-                DeliveryAddress = dto.ShippingAddress,
+                OrderNumber = Guid.NewGuid().ToString("N")[..12],
+                DeliveryAddress = dto.DeliveryAddress, // UPDATED
                 PaymentMethod = dto.PaymentMethod,
+                TotalAmount = cartItems.Sum(c => c.Quantity * c.Product.Price),
+                Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
-                Status = "Pending",
-                OrderNumber = GenerateOrderNumber(),
-                OrderItems = new List<OrderItem>()
+                OrderItems = cartItems.Select(i => new OrderItem
+                {
+                    ProductId = i.ProductId,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.Product.Price
+                }).ToList()
             };
 
-            decimal totalAmount = 0;
+            await _orderRepo.CreateOrderAsync(order);
 
-            foreach (var item in dto.Items)
-            {
-                var product = await _productRepo.GetProductByIdAsync(item.ProductId);
-
-                order.OrderItems.Add(new OrderItem
-                {
-                    ProductId = product.Id,
-                    Quantity = item.Quantity,
-                    UnitPrice = product.Price
-                });
-
-                totalAmount += product.Price * item.Quantity;
-            }
-
-            order.TotalAmount = totalAmount;
-
-            var savedOrder = await _orderRepo.CreateOrderAsync(order);
-
-            // REMOVE ITEMS FROM CART
-            foreach (var orderItem in dto.Items)
-            {
-                var matchingCartItem = cartItems
-                    .First(c => c.ProductId == orderItem.ProductId &&
-                                c.Quantity == orderItem.Quantity);
-
-                await _cartRepo.RemoveItem(matchingCartItem);
-            }
+            // empty cart
+            foreach (var item in cartItems)
+                await _cartRepo.RemoveItem(item);
 
             await _cartRepo.Save();
 
-            response.Data = MapOrderToDto(savedOrder);
+            response.Success = true;
             response.Message = "Order placed successfully.";
+            response.Data = new OrderResponseDto(order);
 
             return response;
         }
@@ -116,52 +104,93 @@ namespace Flygans_Backend.Services.Orders
 
             return new ServiceResponse<List<OrderResponseDto>>
             {
-                Data = orders.Select(MapOrderToDto).ToList()
+                Success = true,
+                Data = orders.Select(o => new OrderResponseDto(o)).ToList()
             };
         }
 
         public async Task<ServiceResponse<OrderResponseDto>> GetOrderByIdAsync(int orderId, int userId)
         {
             var response = new ServiceResponse<OrderResponseDto>();
+
             var order = await _orderRepo.GetOrderByIdAsync(orderId);
 
             if (order == null)
             {
                 response.Success = false;
-                response.Message = "Order not found";
+                response.Message = "Order not found.";
                 return response;
             }
 
             if (order.UserId != userId)
             {
                 response.Success = false;
-                response.Message = "Unauthorized access";
+                response.Message = "Unauthorized.";
                 return response;
             }
 
-            response.Data = MapOrderToDto(order);
+            response.Success = true;
+            response.Data = new OrderResponseDto(order);
             return response;
         }
 
-        private OrderResponseDto MapOrderToDto(Order order)
+        public async Task<ServiceResponse<List<OrderResponseDto>>> GetAllOrders()
         {
-            return new OrderResponseDto
+            var orders = await _orderRepo.GetAllOrders();
+
+            return new ServiceResponse<List<OrderResponseDto>>
             {
-                Id = order.Id,
-                OrderNumber = order.OrderNumber,
-                DeliveryAddress = order.DeliveryAddress,
-                PaymentMethod = order.PaymentMethod,
-                TotalAmount = order.TotalAmount,
-                CreatedAt = order.CreatedAt,
-                Status = order.Status,
-                Items = order.OrderItems.Select(i => new OrderItemResponseDto
-                {
-                    ProductId = i.ProductId,
-                    ProductName = i.Product?.Name ?? "",
-                    UnitPrice = i.UnitPrice,
-                    Quantity = i.Quantity
-                }).ToList()
+                Success = true,
+                Data = orders.Select(o => new OrderResponseDto(o)).ToList()
             };
+        }
+
+        public async Task<ServiceResponse<bool>> DeleteOrder(int orderId)
+        {
+            var response = new ServiceResponse<bool>();
+
+            var order = await _orderRepo.GetOrderByIdAsync(orderId);
+            if (order == null)
+            {
+                response.Success = false;
+                response.Message = "Order not found.";
+                return response;
+            }
+
+            if (order.Status == OrderStatus.Delivered)
+            {
+                response.Success = false;
+                response.Message = "Delivered orders cannot be deleted.";
+                return response;
+            }
+
+            await _orderRepo.DeleteOrder(orderId);
+
+            response.Success = true;
+            response.Message = "Order deleted.";
+            response.Data = true;
+
+            return response;
+        }
+
+        public async Task<ServiceResponse<bool>> UpdateOrderStatus(int orderId, OrderStatus status)
+        {
+            var response = new ServiceResponse<bool>();
+
+            var success = await _orderRepo.UpdateOrderStatus(orderId, status);
+
+            if (!success)
+            {
+                response.Success = false;
+                response.Message = "Order not found.";
+                return response;
+            }
+
+            response.Success = true;
+            response.Message = "Order status updated.";
+            response.Data = true;
+
+            return response;
         }
     }
 }

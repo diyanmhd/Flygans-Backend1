@@ -1,6 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Flygans_Backend.DTOs.Product;
+﻿using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
 
 public class CreateProductDto
 {
@@ -16,6 +15,6 @@ public class CreateProductDto
     [Range(0, 100000)]
     public int StockQuantity { get; set; }
 
-    [Url]
-    public string ImageUrl { get; set; } = string.Empty;
+    // 👇 Cloudinary image upload
+    public IFormFile Image { get; set; } = null!;
 }

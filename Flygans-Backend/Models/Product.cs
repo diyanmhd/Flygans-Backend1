@@ -16,16 +16,19 @@ public class Product
     [Column(TypeName = "decimal(18,2)")]
     public decimal Price { get; set; }
 
-    // ✅ FOREIGN KEY TO CATEGORY
     [Required]
     public int CategoryId { get; set; }
 
-    // ✅ NAVIGATION PROPERTY
     public Category Category { get; set; } = null!;
 
     [Range(0, int.MaxValue)]
     public int StockQuantity { get; set; }
 
-    [MaxLength(500)]
     public string ImageUrl { get; set; } = string.Empty;
+
+    // 👇 add this for delete support
+    public string PublicId { get; set; } = string.Empty;
+
+    // 👇 soft delete
+    public bool IsDeleted { get; set; } = false;
 }

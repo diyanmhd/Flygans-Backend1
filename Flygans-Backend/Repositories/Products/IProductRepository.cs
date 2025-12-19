@@ -4,13 +4,17 @@ namespace Flygans_Backend.Repositories.Products
 {
     public interface IProductRepository
     {
-        Task Add(Product product);
-        Task Save();
+        Task<List<Product>> GetAllProductsAsync();
+        Task<Product> CreateAsync(Product product);
+        Task<Product?> UpdateAsync(Product product);
+        Task<bool> DeleteAsync(Product product);
+        Task<Product?> GetByIdAsync(int id);
 
-        // GET ALL PRODUCTS
-        Task<List<Product>> GetAll();
+        Task<List<Product>> GetAllAsync(int pageNumber = 1, int pageSize = 20);
 
-        // 🔥 ADD THIS
-        Task<Product?> GetProductByIdAsync(int id);
+        Task<List<Product>> GetByCategoryIdAsync(int categoryId, int pageNumber = 1, int pageSize = 20);
+
+        // Updated search signature
+        Task<List<Product>> SearchProductsAsync(string keyword);
     }
 }

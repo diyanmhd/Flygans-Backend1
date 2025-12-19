@@ -3,67 +3,93 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace Flygans_Backend.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class CartController : ControllerBase
+namespace Flygans_Backend.Controllers
 {
-    private readonly ICartService _service;
-
-    public CartController(ICartService service)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class CartController : ControllerBase
     {
-        _service = service;
-    }
+        private readonly ICartService _service;
 
-    [HttpPost("{productId}")]
-    public async Task<IActionResult> Add(int productId, [FromQuery] int quantity = 1)
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        public CartController(ICartService service)
+        {
+            _service = service;
+        }
 
-        await _service.AddToCart(userId, productId, quantity);
+        [HttpPost("{productId}")]
+        public async Task<IActionResult> Add(int productId, [FromQuery] int quantity = 1)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await _service.AddToCart(userId, productId, quantity);
+                return Ok("Item added to cart");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-        return Ok("Item added to cart");
-    }
+        [HttpPut("{productId}")]
+        public async Task<IActionResult> UpdateQuantity(int productId, [FromQuery] int quantity)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await _service.UpdateQuantity(userId, productId, quantity);
+                return Ok("Quantity updated");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-    [HttpPut("{productId}")]
-    public async Task<IActionResult> UpdateQuantity(int productId, [FromQuery] int quantity)
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        [HttpDelete("{productId}")]
+        public async Task<IActionResult> Remove(int productId)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await _service.RemoveFromCart(userId, productId);
+                return Ok("Item removed from cart");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-        await _service.UpdateQuantity(userId, productId, quantity);
+        [HttpDelete]
+        public async Task<IActionResult> Clear()
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await _service.ClearCart(userId);
+                return Ok("Cart cleared");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-        return Ok("Quantity updated");
-    }
-
-    [HttpDelete("{productId}")]
-    public async Task<IActionResult> Remove(int productId)
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-        await _service.RemoveFromCart(userId, productId);
-
-        return Ok("Item removed from cart");
-    }
-
-    [HttpDelete]
-    public async Task<IActionResult> Clear()
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-        await _service.ClearCart(userId);
-
-        return Ok("Cart cleared");
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Get()
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-        var cart = await _service.GetCartItems(userId);
-
-        return Ok(cart);
+        [HttpGet]
+        public async Task<IActionResult> Get()
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var cart = await _service.GetCartItems(userId);
+                return Ok(cart);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

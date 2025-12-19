@@ -38,13 +38,45 @@ namespace Flygans_Backend.Repositories.Orders
                 .FirstOrDefaultAsync(o => o.Id == orderId);
         }
 
-        // 🔥 NEW METHOD FOR PAYMENT FLOW
         public async Task<Order?> GetOrderByOrderNumberAsync(string orderNumber)
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
                 .ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
+        }
+
+        public async Task<List<Order>> GetAllOrders()
+        {
+            return await _context.Orders
+                .Include(o => o.OrderItems)
+                .ThenInclude(i => i.Product)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<bool> DeleteOrder(int orderId)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+
+            if (order == null)
+                return false;
+
+            _context.Orders.Remove(order);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdateOrderStatus(int orderId, OrderStatus status)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+
+            if (order == null)
+                return false;
+
+            order.Status = status;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
