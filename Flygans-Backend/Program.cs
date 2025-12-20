@@ -1,5 +1,6 @@
 ﻿using Flygans_Backend.Data;
 
+// EXISTING REPOSITORIES
 using Flygans_Backend.Repositories.Auth;
 using Flygans_Backend.Repositories.Products;
 using Flygans_Backend.Repositories.Wishlists;
@@ -8,6 +9,10 @@ using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Payments;
 using Flygans_Backend.Repositories.Users;
 
+// NEW: ADMIN DASHBOARD REPOSITORY
+using Flygans_Backend.Repositories.Admin;
+
+// EXISTING SERVICES
 using Flygans_Backend.Services.Auth;
 using Flygans_Backend.Services.Products;
 using Flygans_Backend.Services.Wishlists;
@@ -16,6 +21,9 @@ using Flygans_Backend.Services.Orders;
 using Flygans_Backend.Services.Payments;
 using Flygans_Backend.Services.Users;
 using Flygans_Backend.Services.Cloudinary;
+
+// NEW: ADMIN DASHBOARD SERVICE
+using Flygans_Backend.Services.Admin;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -102,12 +110,12 @@ builder.Services.AddAuthorization();
 
 
 // ⭐ USER REPOS
-builder.Services.AddScoped<IUserRepository, UserRepository>();                // For Auth (Login/Register)
-builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();      // For Admin (Block/Unblock/Delete)
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 
 
 // ⭐ USER SERVICES
-builder.Services.AddScoped<IUserService, UserService>();                       // Admin user service
+builder.Services.AddScoped<IUserService, UserService>();
 
 
 // OTHER SERVICES
@@ -130,6 +138,10 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+
+// ⭐ NEW: ADMIN DASHBOARD REGISTRATION
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
 
 // PIPELINE

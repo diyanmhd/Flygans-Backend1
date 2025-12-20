@@ -1,4 +1,5 @@
 ﻿using Flygans_Backend.Services.Users;
+using Flygans_Backend.Services.Admin;   // <-- add this
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,11 +11,25 @@ namespace Flygans_Backend.Controllers
     public class AdminUsersController : ControllerBase
     {
         private readonly IUserService _service;
+        private readonly IAdminDashboardService _dashboard;  // <-- add this
 
-        public AdminUsersController(IUserService service)
+        public AdminUsersController(
+            IUserService service,
+            IAdminDashboardService dashboard)   // <-- inject here
         {
             _service = service;
+            _dashboard = dashboard;             // <-- assign
         }
+
+        // ⭐ DASHBOARD ENDPOINT HERE ⭐
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard()
+        {
+            var stats = await _dashboard.GetDashboardStatsAsync();
+            return Ok(stats);
+        }
+
+        // EXISTING USER ENDPOINTS BELOW
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -29,7 +44,7 @@ namespace Flygans_Backend.Controllers
             var res = await _service.BlockUserAsync(id);
 
             if (!res.Success)
-                return NotFound(res); // user not found
+                return NotFound(res);
 
             return Ok(res);
         }
@@ -39,7 +54,6 @@ namespace Flygans_Backend.Controllers
         {
             var res = await _service.UnblockUserAsync(id);
 
-            if (!res.Success)
                 return NotFound(res);
 
             return Ok(res);
