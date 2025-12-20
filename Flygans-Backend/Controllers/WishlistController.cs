@@ -27,13 +27,12 @@ public class WishlistController : ControllerBase
 
         int userId = int.Parse(userIdClaim);
 
-        await _service.AddToWishlist(userId, productId);
+        var result = await _service.AddToWishlist(userId, productId);
 
-        return Ok(new
-        {
-            success = true,
-            message = "Added to wishlist successfully"
-        });
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
     }
 
     [HttpDelete("{productId}")]
@@ -46,13 +45,12 @@ public class WishlistController : ControllerBase
 
         int userId = int.Parse(userIdClaim);
 
-        await _service.RemoveFromWishlist(userId, productId);
+        var result = await _service.RemoveFromWishlist(userId, productId);
 
-        return Ok(new
-        {
-            success = true,
-            message = "Removed from wishlist successfully"
-        });
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
     }
 
     [HttpGet]

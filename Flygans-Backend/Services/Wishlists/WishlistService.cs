@@ -14,12 +14,19 @@ public class WishlistService : IWishlistService
         _repo = repo;
     }
 
-    public async Task AddToWishlist(int userId, int productId)
+    public async Task<ServiceResponse<bool>> AddToWishlist(int userId, int productId)
     {
+        var response = new ServiceResponse<bool>();
+
         var exists = await _repo.GetByUserAndProduct(userId, productId);
 
         if (exists != null)
-            return;
+        {
+            response.Success = false;
+            response.Message = "Product already in wishlist";
+            response.Data = false;
+            return response;
+        }
 
         var wishlist = new Wishlist
         {
@@ -29,17 +36,36 @@ public class WishlistService : IWishlistService
 
         await _repo.Add(wishlist);
         await _repo.Save();
+
+        response.Success = true;
+        response.Message = "Added to wishlist successfully";
+        response.Data = true;
+
+        return response;
     }
 
-    public async Task RemoveFromWishlist(int userId, int productId)
+    public async Task<ServiceResponse<bool>> RemoveFromWishlist(int userId, int productId)
     {
+        var response = new ServiceResponse<bool>();
+
         var wishlist = await _repo.GetByUserAndProduct(userId, productId);
 
         if (wishlist == null)
-            return;
+        {
+            response.Success = false;
+            response.Message = "Item not found in wishlist";
+            response.Data = false;
+            return response;
+        }
 
         await _repo.Remove(wishlist);
         await _repo.Save();
+
+        response.Success = true;
+        response.Message = "Removed from wishlist";
+        response.Data = true;
+
+        return response;
     }
 
     public async Task<ServiceResponse<List<WishlistDto>>> GetWishlist(int userId)

@@ -31,8 +31,8 @@ namespace Flygans_Backend.Services.Orders
         {
             var response = new ServiceResponse<OrderResponseDto>();
 
+            // validate user
             var user = await _userRepo.GetUserByIdAsync(userId);
-
             if (user == null || user.IsDeleted)
             {
                 response.Success = false;
@@ -47,8 +47,16 @@ namespace Flygans_Backend.Services.Orders
                 return response;
             }
 
-            var cart = await _cartRepo.GetByUser(userId);
+            // validate checkout items
+            if (dto.Items == null || !dto.Items.Any())
+            {
+                response.Success = false;
+                response.Message = "No items provided for checkout.";
+                return response;
+            }
 
+            // get cart
+            var cart = await _cartRepo.GetByUser(userId);
             if (cart == null)
             {
                 response.Success = false;
@@ -56,38 +64,53 @@ namespace Flygans_Backend.Services.Orders
                 return response;
             }
 
-            var cartItems = await _cartRepo.GetItemsByCart(cart.Id);
-
-            if (!cartItems.Any())
-            {
-                response.Success = false;
-                response.Message = "Your cart is empty.";
-                return response;
-            }
-
             decimal totalAmount = 0m;
-            List<OrderItem> orderItems = new();
+            var orderItems = new List<OrderItem>();
 
-            foreach (var cItem in cartItems)
+            foreach (var req in dto.Items)
             {
-                var product = await _productRepo.GetByIdAsync(cItem.ProductId);
-
-                if (product == null)
+                var cartItem = await _cartRepo.GetItem(cart.Id, req.ProductId);
+                if (cartItem == null)
                 {
                     response.Success = false;
-                    response.Message = $"Product with id {cItem.ProductId} not found.";
+                    response.Message = $"Product with ID {req.ProductId} not found in your cart.";
                     return response;
                 }
 
-                var itemTotal = product.Price * cItem.Quantity;
-                totalAmount += itemTotal;
+                if (req.Quantity <= 0 || req.Quantity > cartItem.Quantity)
+                {
+                    response.Success = false;
+                    response.Message = $"Invalid quantity for product ID {req.ProductId}.";
+                    return response;
+                }
 
+                var product = await _productRepo.GetByIdAsync(req.ProductId);
+                if (product == null)
+                {
+                    response.Success = false;
+                    response.Message = $"Product with ID {req.ProductId} not found.";
+                    return response;
+                }
+
+                // add order item without TotalPrice assignment
                 orderItems.Add(new OrderItem
                 {
-                    ProductId = cItem.ProductId,
-                    Quantity = cItem.Quantity,
+                    ProductId = req.ProductId,
+                    Quantity = req.Quantity,
                     UnitPrice = product.Price
                 });
+
+                totalAmount += product.Price * req.Quantity;
+
+                // update cart
+                if (req.Quantity == cartItem.Quantity)
+                {
+                    await _cartRepo.RemoveItem(cartItem); // remove fully
+                }
+                else
+                {
+                    cartItem.Quantity -= req.Quantity; // reduce partially
+                }
             }
 
             var order = new Order
@@ -103,10 +126,6 @@ namespace Flygans_Backend.Services.Orders
             };
 
             await _orderRepo.CreateOrderAsync(order);
-
-            foreach (var item in cartItems)
-                await _cartRepo.RemoveItem(item);
-
             await _cartRepo.Save();
 
             response.Success = true;

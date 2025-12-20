@@ -5,9 +5,8 @@ namespace Flygans_Backend.Services.Wishlists;
 
 public interface IWishlistService
 {
-    Task AddToWishlist(int userId, int productId);
-    Task RemoveFromWishlist(int userId, int productId);
+    Task<ServiceResponse<bool>> AddToWishlist(int userId, int productId);
+    Task<ServiceResponse<bool>> RemoveFromWishlist(int userId, int productId);
 
-    // STANDARD RESPONSE
     Task<ServiceResponse<List<WishlistDto>>> GetWishlist(int userId);
 }

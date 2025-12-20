@@ -17,18 +17,32 @@ namespace Flygans_Backend.Controllers
             _service = service;
         }
 
+        private int GetUserId()
+        {
+            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        }
+
         [HttpPost("{productId}")]
         public async Task<IActionResult> Add(int productId, [FromQuery] int quantity = 1)
         {
             try
             {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var userId = GetUserId();
                 await _service.AddToCart(userId, productId, quantity);
-                return Ok("Item added to cart");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Item added to cart"
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -37,13 +51,22 @@ namespace Flygans_Backend.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var userId = GetUserId();
                 await _service.UpdateQuantity(userId, productId, quantity);
-                return Ok("Quantity updated");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = quantity <= 0 ? "Item removed from cart" : "Quantity updated"
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -52,13 +75,22 @@ namespace Flygans_Backend.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var userId = GetUserId();
                 await _service.RemoveFromCart(userId, productId);
-                return Ok("Item removed from cart");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Item removed from cart"
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -67,13 +99,22 @@ namespace Flygans_Backend.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var userId = GetUserId();
                 await _service.ClearCart(userId);
-                return Ok("Cart cleared");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Cart cleared"
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -82,13 +123,23 @@ namespace Flygans_Backend.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var userId = GetUserId();
                 var cart = await _service.GetCartItems(userId);
-                return Ok(cart);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Cart retrieved",
+                    data = cart
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
     }

@@ -27,9 +27,13 @@ namespace Flygans_Backend.Services.Carts
                 throw new Exception("Your account is blocked. Contact admin.");
         }
 
+        // ADD or increase quantity
         public async Task AddToCart(int userId, int productId, int quantity)
         {
             await ValidateUser(userId);
+
+            if (quantity <= 0)
+                throw new Exception("Quantity must be greater than zero.");
 
             var cart = await _repo.GetByUser(userId);
 
@@ -62,10 +66,14 @@ namespace Flygans_Backend.Services.Carts
             await ValidateUser(userId);
 
             var cart = await _repo.GetByUser(userId);
-            if (cart == null) return;
+
+            if (cart == null)
+                throw new Exception("Cart not found");
 
             var item = await _repo.GetItem(cart.Id, productId);
-            if (item == null) return;
+
+            if (item == null)
+                throw new Exception("Item not found in cart");
 
             await _repo.RemoveItem(item);
             await _repo.Save();
@@ -76,6 +84,7 @@ namespace Flygans_Backend.Services.Carts
             await ValidateUser(userId);
 
             var cart = await _repo.GetByUser(userId);
+
             if (cart == null)
                 return new List<CartItemDto>();
 
@@ -92,17 +101,30 @@ namespace Flygans_Backend.Services.Carts
             }).ToList();
         }
 
+        // UPDATE quantity or remove if <= 0
         public async Task UpdateQuantity(int userId, int productId, int quantity)
         {
             await ValidateUser(userId);
 
             var cart = await _repo.GetByUser(userId);
-            if (cart == null) return;
+
+            if (cart == null)
+                throw new Exception("Cart not found");
 
             var item = await _repo.GetItem(cart.Id, productId);
-            if (item == null) return;
 
-            item.Quantity = quantity;
+            if (item == null)
+                throw new Exception("Item not found in cart");
+
+            if (quantity <= 0)
+            {
+                await _repo.RemoveItem(item);
+            }
+            else
+            {
+                item.Quantity = quantity;
+            }
+
             await _repo.Save();
         }
 
@@ -111,7 +133,9 @@ namespace Flygans_Backend.Services.Carts
             await ValidateUser(userId);
 
             var cart = await _repo.GetByUser(userId);
-            if (cart == null) return;
+
+            if (cart == null)
+                throw new Exception("Cart not found");
 
             var items = await _repo.GetItemsByCart(cart.Id);
 
