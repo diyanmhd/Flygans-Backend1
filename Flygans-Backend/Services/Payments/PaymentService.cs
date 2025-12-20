@@ -27,15 +27,15 @@ namespace Flygans_Backend.Services.Payments
             _orderRepo = orderRepo;
         }
 
-        // ===============================
-        // INITIATE PAYMENT (FIXED)
-        // ===============================
+        // ================================
+        // INITIATE PAYMENT  (FIXED)
+        // ================================
         public async Task<ServiceResponse<PaymentResponseDto>> InitiatePaymentAsync(
             CreatePaymentRequestDto dto, int userId)
         {
             var response = new ServiceResponse<PaymentResponseDto>();
 
-            // 1️⃣ Get order from DB
+            // 1️⃣ Validate order
             var order = await _orderRepo.GetOrderByOrderNumberAsync(dto.OrderNumber);
             if (order == null)
             {
@@ -44,7 +44,7 @@ namespace Flygans_Backend.Services.Payments
                 return response;
             }
 
-            // 2️⃣ Check order ownership
+            // 2️⃣ Check ownership
             if (order.UserId != userId)
             {
                 response.Success = false;
@@ -52,19 +52,19 @@ namespace Flygans_Backend.Services.Payments
                 return response;
             }
 
-            // 3️⃣ Check order status
-            if (order.Status == OrderStatus.Pending)
+            // 3️⃣ Block only if order already paid
+            if (order.Status == OrderStatus.Confirmed || order.Status == OrderStatus.Delivered)
             {
                 response.Success = false;
                 response.Message = "Order already paid";
                 return response;
             }
 
-            // 4️⃣ Calculate amount ONLY from DB
+            // 4️⃣ Validate amount
             if (order.TotalAmount <= 0)
             {
                 response.Success = false;
-                response.Message = "Invalid order amount";
+                response.Message = "Invalid amount";
                 return response;
             }
 
@@ -72,7 +72,6 @@ namespace Flygans_Backend.Services.Payments
 
             try
             {
-                // 5️⃣ Create Razorpay order
                 var client = new RazorpayClient(_keyId, _keySecret);
 
                 var options = new Dictionary<string, object>
@@ -84,8 +83,8 @@ namespace Flygans_Backend.Services.Payments
 
                 var razorOrder = client.Order.Create(options);
 
-                // 6️⃣ Save payment record
-                var payment = new Models.Payment
+                // Save payment record
+                var payment = new Flygans_Backend.Models.Payment
                 {
                     OrderNumber = order.OrderNumber,
                     RazorpayOrderId = razorOrder["id"],
@@ -95,6 +94,7 @@ namespace Flygans_Backend.Services.Payments
 
                 await _paymentRepo.CreateAsync(payment);
 
+                response.Success = true;
                 response.Message = "Payment initiated successfully";
                 response.Data = new PaymentResponseDto
                 {
@@ -113,9 +113,9 @@ namespace Flygans_Backend.Services.Payments
             }
         }
 
-        // ===============================
-        // CONFIRM PAYMENT (OK)
-        // ===============================
+        // ================================
+        // CONFIRM PAYMENT (FIXED)
+        // ================================
         public async Task<ServiceResponse<PaymentResponseDto>> ConfirmPaymentAsync(
             PaymentConfirmationDto dto)
         {
@@ -125,15 +125,12 @@ namespace Flygans_Backend.Services.Payments
 
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_keySecret));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
-            var generatedSignature = BitConverter
-                .ToString(hash)
-                .Replace("-", "")
-                .ToLower();
+            var generated = BitConverter.ToString(hash).Replace("-", "").ToLower();
 
-            if (generatedSignature != dto.RazorpaySignature)
+            if (generated != dto.RazorpaySignature)
             {
                 response.Success = false;
-                response.Message = "Invalid Razorpay signature";
+                response.Message = "Invalid signature";
                 return response;
             }
 
@@ -141,16 +138,24 @@ namespace Flygans_Backend.Services.Payments
             if (payment == null)
             {
                 response.Success = false;
-                response.Message = "Payment record not found";
+                response.Message = "Payment not found";
                 return response;
             }
 
+            // update payment
             payment.RazorpayPaymentId = dto.RazorpayPaymentId;
             payment.RazorpaySignature = dto.RazorpaySignature;
             payment.Status = "Paid";
-
             await _paymentRepo.UpdateAsync(payment);
 
+            // update order status (using correct repo method)
+            var order = await _orderRepo.GetOrderByOrderNumberAsync(payment.OrderNumber);
+            if (order != null)
+            {
+                await _orderRepo.UpdateOrderStatus(order.Id, OrderStatus.Confirmed);
+            }
+
+            response.Success = true;
             response.Message = "Payment confirmed successfully";
             response.Data = new PaymentResponseDto
             {
@@ -162,9 +167,9 @@ namespace Flygans_Backend.Services.Payments
             return response;
         }
 
-        // ===============================
+        // ================================
         // GET PAYMENT
-        // ===============================
+        // ================================
         public async Task<ServiceResponse<PaymentResponseDto>> GetPaymentByOrderNumberAsync(
             string orderNumber)
         {
@@ -178,7 +183,8 @@ namespace Flygans_Backend.Services.Payments
                 return response;
             }
 
-            response.Message = "Payment fetched successfully";
+            response.Success = true;
+            response.Message = "Payment found";
             response.Data = new PaymentResponseDto
             {
                 OrderNumber = payment.OrderNumber,

@@ -65,27 +65,45 @@ namespace Flygans_Backend.Services.Orders
                 return response;
             }
 
-            // Create order
+            decimal totalAmount = 0m;
+            List<OrderItem> orderItems = new();
+
+            foreach (var cItem in cartItems)
+            {
+                var product = await _productRepo.GetByIdAsync(cItem.ProductId);
+
+                if (product == null)
+                {
+                    response.Success = false;
+                    response.Message = $"Product with id {cItem.ProductId} not found.";
+                    return response;
+                }
+
+                var itemTotal = product.Price * cItem.Quantity;
+                totalAmount += itemTotal;
+
+                orderItems.Add(new OrderItem
+                {
+                    ProductId = cItem.ProductId,
+                    Quantity = cItem.Quantity,
+                    UnitPrice = product.Price
+                });
+            }
+
             var order = new Order
             {
                 UserId = userId,
                 OrderNumber = Guid.NewGuid().ToString("N")[..12],
-                DeliveryAddress = dto.DeliveryAddress, // UPDATED
+                DeliveryAddress = dto.DeliveryAddress,
                 PaymentMethod = dto.PaymentMethod,
-                TotalAmount = cartItems.Sum(c => c.Quantity * c.Product.Price),
+                TotalAmount = totalAmount,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
-                OrderItems = cartItems.Select(i => new OrderItem
-                {
-                    ProductId = i.ProductId,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.Product.Price
-                }).ToList()
+                OrderItems = orderItems
             };
 
             await _orderRepo.CreateOrderAsync(order);
 
-            // empty cart
             foreach (var item in cartItems)
                 await _cartRepo.RemoveItem(item);
 
