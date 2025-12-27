@@ -69,6 +69,7 @@ namespace Flygans_Backend.Services.Auth
                 Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
+                Role = user.Role,
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15)
