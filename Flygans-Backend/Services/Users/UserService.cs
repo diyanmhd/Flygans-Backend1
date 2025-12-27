@@ -1,6 +1,7 @@
 ﻿using Flygans_Backend.DTOs.Users;
 using Flygans_Backend.Helpers;
 using Flygans_Backend.Repositories.Users;
+using Flygans_Backend.Exceptions; // required
 
 namespace Flygans_Backend.Services.Users
 {
@@ -33,88 +34,62 @@ namespace Flygans_Backend.Services.Users
 
         public async Task<ServiceResponse<bool>> BlockUserAsync(int userId)
         {
-            var res = new ServiceResponse<bool>();
-
             var user = await _userRepo.GetUserByIdAsync(userId);
+
             if (user == null || user.IsDeleted)
+                throw new NotFoundException("User not found");
+
+            var success = await _userRepo.BlockUserAsync(user);
+
+            if (!success)
+                throw new NotFoundException("User not found");
+
+            return new ServiceResponse<bool>
             {
-                res.Success = false;
-                res.Message = "User not found";
-                return res;
-            }
-
-            var result = await _userRepo.BlockUserAsync(user);
-
-            if (!result)
-            {
-                res.Success = false;
-                res.Message = "User not found";
-                return res;
-            }
-
-            res.Success = true;
-            res.Data = true;
-            res.Message = "User blocked";
-            return res;
+                Success = true,
+                Data = true,
+                Message = "User blocked"
+            };
         }
 
         public async Task<ServiceResponse<bool>> UnblockUserAsync(int userId)
         {
-            var res = new ServiceResponse<bool>();
-
             var user = await _userRepo.GetUserByIdAsync(userId);
+
             if (user == null || user.IsDeleted)
+                throw new NotFoundException("User not found");
+
+            var success = await _userRepo.UnblockUserAsync(user);
+
+            if (!success)
+                throw new NotFoundException("User not found");
+
+            return new ServiceResponse<bool>
             {
-                res.Success = false;
-                res.Message = "User not found";
-                return res;
-            }
-
-            var result = await _userRepo.UnblockUserAsync(user);
-
-            if (!result)
-            {
-                res.Success = false;
-                res.Message = "User not found";
-                return res;
-            }
-
-            res.Success = true;
-            res.Data = true;
-            res.Message = "User unblocked";
-            return res;
+                Success = true,
+                Data = true,
+                Message = "User unblocked"
+            };
         }
 
         public async Task<ServiceResponse<bool>> DeleteUserAsync(int userId)
         {
-            var res = new ServiceResponse<bool>();
-
             var user = await _userRepo.GetUserByIdAsync(userId);
 
-            // user doesn't exist
             if (user == null)
+                throw new NotFoundException("User not found");
+
+            var success = await _userRepo.DeleteUserAsync(user);
+
+            if (!success)
+                throw new NotFoundException("User not found");
+
+            return new ServiceResponse<bool>
             {
-                res.Success = false;
-                res.Message = "User not found";
-                return res;
-            }
-
-            // delegate soft delete to repo
-            var result = await _userRepo.DeleteUserAsync(user);
-
-            // already deleted or failed
-            if (!result)
-            {
-                res.Success = false;
-                res.Message = "User not found";
-                return res;
-            }
-
-            // success
-            res.Success = true;
-            res.Data = true;
-            res.Message = "User deleted";
-            return res;
+                Success = true,
+                Data = true,
+                Message = "User deleted"
+            };
         }
     }
 }

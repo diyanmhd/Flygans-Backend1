@@ -17,9 +17,6 @@ namespace Flygans_Backend.Controllers
             _service = service;
         }
 
-        // ----------------------------------------------------------
-        // GET ALL PRODUCTS
-        // ----------------------------------------------------------
         [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -28,9 +25,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ----------------------------------------------------------
-        // GET BY ID
-        // ----------------------------------------------------------
         [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -39,9 +33,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ----------------------------------------------------------
-        // GET BY CATEGORY
-        // ----------------------------------------------------------
         [AllowAnonymous]
         [HttpGet("category/{categoryId}")]
         public async Task<IActionResult> GetByCategory(int categoryId)
@@ -50,9 +41,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ----------------------------------------------------------
-        // SEARCH BY NAME ONLY
-        // ----------------------------------------------------------
         [AllowAnonymous]
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string keyword)
@@ -61,9 +49,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ----------------------------------------------------------
-        // CREATE PRODUCT WITH CLOUDINARY
-        // ----------------------------------------------------------
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [Consumes("multipart/form-data")]
@@ -73,9 +58,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ----------------------------------------------------------
-        // UPDATE PRODUCT 
-        // ----------------------------------------------------------
         [Authorize(Roles = "Admin")]
         [HttpPut]
         [Consumes("multipart/form-data")]
@@ -85,9 +67,6 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ----------------------------------------------------------
-        // SOFT DELETE PRODUCT
-        // ----------------------------------------------------------
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

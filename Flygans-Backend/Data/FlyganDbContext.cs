@@ -23,6 +23,11 @@ namespace Flygans_Backend.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // 🎯 Ensure Email is unique for Users
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
             // 🎯 Store OrderStatus enum as int in database
             modelBuilder.Entity<Order>()
                 .Property(o => o.Status)
@@ -59,7 +64,7 @@ namespace Flygans_Backend.Data
                 .HasOne(i => i.Cart)
                 .WithMany()
                 .HasForeignKey(i => i.CartId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<CartItem>()
                 .HasOne(i => i.Product)

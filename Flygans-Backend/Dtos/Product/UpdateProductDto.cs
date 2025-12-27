@@ -10,7 +10,6 @@ namespace Flygans_Backend.DTOs.Product
         public int CategoryId { get; set; }
         public int StockQuantity { get; set; }
 
-        // optional new image
         public IFormFile? Image { get; set; }
     }
 }

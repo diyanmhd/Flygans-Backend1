@@ -5,6 +5,7 @@ using Flygans_Backend.Repositories.Carts;
 using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Products;
 using Flygans_Backend.Repositories.Users;
+using Flygans_Backend.Exceptions; // required
 
 namespace Flygans_Backend.Services.Orders
 {
@@ -29,40 +30,21 @@ namespace Flygans_Backend.Services.Orders
 
         public async Task<ServiceResponse<OrderResponseDto>> CreateOrderAsync(int userId, CreateOrderDto dto)
         {
-            var response = new ServiceResponse<OrderResponseDto>();
-
-            // validate user
             var user = await _userRepo.GetUserByIdAsync(userId);
+
             if (user == null || user.IsDeleted)
-            {
-                response.Success = false;
-                response.Message = "This account was deleted by an admin.";
-                return response;
-            }
+                throw new UnauthorizedException("This account was deleted by an admin.");
 
             if (user.IsBlocked)
-            {
-                response.Success = false;
-                response.Message = "Your account is blocked. Contact admin.";
-                return response;
-            }
+                throw new UnauthorizedException("Your account is blocked. Contact admin.");
 
-            // validate checkout items
             if (dto.Items == null || !dto.Items.Any())
-            {
-                response.Success = false;
-                response.Message = "No items provided for checkout.";
-                return response;
-            }
+                throw new BadRequestException("No items provided for checkout.");
 
-            // get cart
             var cart = await _cartRepo.GetByUser(userId);
+
             if (cart == null)
-            {
-                response.Success = false;
-                response.Message = "Your cart is empty.";
-                return response;
-            }
+                throw new BadRequestException("Your cart is empty.");
 
             decimal totalAmount = 0m;
             var orderItems = new List<OrderItem>();
@@ -70,29 +52,18 @@ namespace Flygans_Backend.Services.Orders
             foreach (var req in dto.Items)
             {
                 var cartItem = await _cartRepo.GetItem(cart.Id, req.ProductId);
+
                 if (cartItem == null)
-                {
-                    response.Success = false;
-                    response.Message = $"Product with ID {req.ProductId} not found in your cart.";
-                    return response;
-                }
+                    throw new NotFoundException($"Product with ID {req.ProductId} not found in your cart.");
 
                 if (req.Quantity <= 0 || req.Quantity > cartItem.Quantity)
-                {
-                    response.Success = false;
-                    response.Message = $"Invalid quantity for product ID {req.ProductId}.";
-                    return response;
-                }
+                    throw new BadRequestException($"Invalid quantity for product ID {req.ProductId}.");
 
                 var product = await _productRepo.GetByIdAsync(req.ProductId);
-                if (product == null)
-                {
-                    response.Success = false;
-                    response.Message = $"Product with ID {req.ProductId} not found.";
-                    return response;
-                }
 
-                // add order item without TotalPrice assignment
+                if (product == null)
+                    throw new NotFoundException($"Product with ID {req.ProductId} not found.");
+
                 orderItems.Add(new OrderItem
                 {
                     ProductId = req.ProductId,
@@ -102,14 +73,13 @@ namespace Flygans_Backend.Services.Orders
 
                 totalAmount += product.Price * req.Quantity;
 
-                // update cart
                 if (req.Quantity == cartItem.Quantity)
                 {
-                    await _cartRepo.RemoveItem(cartItem); // remove fully
+                    await _cartRepo.RemoveItem(cartItem);
                 }
                 else
                 {
-                    cartItem.Quantity -= req.Quantity; // reduce partially
+                    cartItem.Quantity -= req.Quantity;
                 }
             }
 
@@ -128,11 +98,12 @@ namespace Flygans_Backend.Services.Orders
             await _orderRepo.CreateOrderAsync(order);
             await _cartRepo.Save();
 
-            response.Success = true;
-            response.Message = "Order placed successfully.";
-            response.Data = new OrderResponseDto(order);
-
-            return response;
+            return new ServiceResponse<OrderResponseDto>
+            {
+                Success = true,
+                Message = "Order placed successfully.",
+                Data = new OrderResponseDto(order)
+            };
         }
 
         public async Task<ServiceResponse<List<OrderResponseDto>>> GetOrdersByUserIdAsync(int userId)
@@ -148,27 +119,19 @@ namespace Flygans_Backend.Services.Orders
 
         public async Task<ServiceResponse<OrderResponseDto>> GetOrderByIdAsync(int orderId, int userId)
         {
-            var response = new ServiceResponse<OrderResponseDto>();
-
             var order = await _orderRepo.GetOrderByIdAsync(orderId);
 
             if (order == null)
-            {
-                response.Success = false;
-                response.Message = "Order not found.";
-                return response;
-            }
+                throw new NotFoundException("Order not found.");
 
             if (order.UserId != userId)
-            {
-                response.Success = false;
-                response.Message = "Unauthorized.";
-                return response;
-            }
+                throw new UnauthorizedException("Unauthorized.");
 
-            response.Success = true;
-            response.Data = new OrderResponseDto(order);
-            return response;
+            return new ServiceResponse<OrderResponseDto>
+            {
+                Success = true,
+                Data = new OrderResponseDto(order)
+            };
         }
 
         public async Task<ServiceResponse<List<OrderResponseDto>>> GetAllOrders()
@@ -184,50 +147,37 @@ namespace Flygans_Backend.Services.Orders
 
         public async Task<ServiceResponse<bool>> DeleteOrder(int orderId)
         {
-            var response = new ServiceResponse<bool>();
-
             var order = await _orderRepo.GetOrderByIdAsync(orderId);
+
             if (order == null)
-            {
-                response.Success = false;
-                response.Message = "Order not found.";
-                return response;
-            }
+                throw new NotFoundException("Order not found.");
 
             if (order.Status == OrderStatus.Delivered)
-            {
-                response.Success = false;
-                response.Message = "Delivered orders cannot be deleted.";
-                return response;
-            }
+                throw new BadRequestException("Delivered orders cannot be deleted.");
 
             await _orderRepo.DeleteOrder(orderId);
 
-            response.Success = true;
-            response.Message = "Order deleted.";
-            response.Data = true;
-
-            return response;
+            return new ServiceResponse<bool>
+            {
+                Success = true,
+                Message = "Order deleted.",
+                Data = true
+            };
         }
 
         public async Task<ServiceResponse<bool>> UpdateOrderStatus(int orderId, OrderStatus status)
         {
-            var response = new ServiceResponse<bool>();
-
             var success = await _orderRepo.UpdateOrderStatus(orderId, status);
 
             if (!success)
+                throw new NotFoundException("Order not found.");
+
+            return new ServiceResponse<bool>
             {
-                response.Success = false;
-                response.Message = "Order not found.";
-                return response;
-            }
-
-            response.Success = true;
-            response.Message = "Order status updated.";
-            response.Data = true;
-
-            return response;
+                Success = true,
+                Message = "Order status updated.",
+                Data = true
+            };
         }
     }
 }

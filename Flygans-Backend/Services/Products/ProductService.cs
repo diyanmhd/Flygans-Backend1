@@ -6,6 +6,7 @@ using Flygans_Backend.Repositories.Products;
 using Flygans_Backend.Services.Cloudinary;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using Flygans_Backend.Exceptions; // required
 
 namespace Flygans_Backend.Services.Products
 {
@@ -22,77 +23,56 @@ namespace Flygans_Backend.Services.Products
             _context = context;
         }
 
-        // CREATE WITH STRICT DUPLICATE CHECK
+        // CREATE WITH DUPLICATE CHECK
         public async Task<ServiceResponse<string>> CreateProductAsync(CreateProductDto dto)
         {
-            var response = new ServiceResponse<string>();
+            // normalize name to compare
+            var normalizedName = Regex.Replace(dto.Name, @"\s+", "").Trim().ToLower();
 
-            try
+            var dbNames = await _context.Products
+                .Where(p => !p.IsDeleted)
+                .Select(p => p.Name)
+                .ToListAsync();
+
+            var exists = dbNames.Any(name =>
+                Regex.Replace(name, @"\s+", "").Trim().ToLower() == normalizedName
+            );
+
+            if (exists)
+                throw new BadRequestException("Product with same or similar name already exists");
+
+            var cleanName = Regex.Replace(dto.Name, @"\s+", " ").Trim();
+
+            var imageUrl = await _cloudinary.UploadImageAsync(dto.Image);
+            var publicId = imageUrl.Split('/').Last().Split('.').First();
+
+            var product = new Product
             {
-                // 1️⃣ Normalize incoming name: remove ALL spaces + lowercase
-                var normalizedName = Regex.Replace(dto.Name, @"\s+", "").Trim().ToLower();
+                Name = cleanName,
+                Price = dto.Price,
+                CategoryId = dto.CategoryId,
+                StockQuantity = dto.StockQuantity,
+                ImageUrl = imageUrl,
+                PublicId = publicId,
+                IsDeleted = false
+            };
 
-                // 2️⃣ Fetch product names from DB (no regex used in SQL)
-                var dbNames = await _context.Products
-                    .Where(p => !p.IsDeleted)
-                    .Select(p => p.Name)
-                    .ToListAsync();
+            await _repo.CreateAsync(product);
 
-                // 3️⃣ Normalize existing names & check duplicates IN MEMORY
-                var exists = dbNames.Any(name =>
-                    Regex.Replace(name, @"\s+", "").Trim().ToLower() == normalizedName
-                );
-
-                if (exists)
-                {
-                    response.Success = false;
-                    response.Message = "Product with same or similar name already exists";
-                    return response;
-                }
-
-                // store name cleaned (trim & collapse spaces, not remove all)
-                var cleanName = Regex.Replace(dto.Name, @"\s+", " ").Trim();
-
-                var imageUrl = await _cloudinary.UploadImageAsync(dto.Image);
-                var publicId = imageUrl.Split('/').Last().Split('.').First();
-
-                var product = new Product
-                {
-                    Name = cleanName,
-                    Price = dto.Price,
-                    CategoryId = dto.CategoryId,
-                    StockQuantity = dto.StockQuantity,
-                    ImageUrl = imageUrl,
-                    PublicId = publicId,
-                    IsDeleted = false
-                };
-
-                await _repo.CreateAsync(product);
-
-                response.Message = "Product created successfully";
-            }
-            catch (Exception ex)
+            return new ServiceResponse<string>
             {
-                response.Success = false;
-                response.Message = ex.Message;
-            }
-
-            return response;
+                Success = true,
+                Message = "Product created successfully"
+            };
         }
 
         // UPDATE
         public async Task<ServiceResponse<string>> UpdateProductAsync(UpdateProductDto dto)
         {
-            var response = new ServiceResponse<string>();
-
             var product = await _repo.GetByIdAsync(dto.Id);
 
             if (product == null || product.IsDeleted)
-            {
-                response.Success = false;
-                response.Message = "Product not found";
-                return response;
-            }
+                throw new NotFoundException("Product not found");
 
             product.Name = Regex.Replace(dto.Name, @"\s+", " ").Trim();
             product.Price = dto.Price;
@@ -110,123 +90,104 @@ namespace Flygans_Backend.Services.Products
 
             await _repo.UpdateAsync(product);
 
-            response.Message = "Product updated successfully";
-            return response;
+            return new ServiceResponse<string>
+            {
+                Success = true,
+                Message = "Product updated successfully"
+            };
         }
 
-        // DELETE (soft)
+        // DELETE soft
         public async Task<ServiceResponse<bool>> DeleteProductAsync(int id)
         {
-            var response = new ServiceResponse<bool>();
-
             var product = await _repo.GetByIdAsync(id);
 
             if (product == null)
-            {
-                response.Success = false;
-                response.Message = "Product not found";
-                return response;
-            }
+                throw new NotFoundException("Product not found");
 
             product.IsDeleted = true;
 
             await _cloudinary.DeleteImageAsync(product.PublicId);
             await _repo.UpdateAsync(product);
 
-            response.Data = true;
-            response.Message = "Product deleted";
-            return response;
+            return new ServiceResponse<bool>
+            {
+                Success = true,
+                Message = "Product deleted",
+                Data = true
+            };
         }
 
         // GET ALL
         public async Task<ServiceResponse<IEnumerable<ProductDto>>> GetAllProductsAsync()
         {
-            var response = new ServiceResponse<IEnumerable<ProductDto>>();
-
             var products = await _repo.GetAllProductsAsync();
 
-            response.Data = products
-                .Where(p => !p.IsDeleted)
-                .Select(Map)
-                .ToList();
-
-            return response;
+            return new ServiceResponse<IEnumerable<ProductDto>>
+            {
+                Success = true,
+                Data = products
+                    .Where(p => !p.IsDeleted)
+                    .Select(Map)
+                    .ToList()
+            };
         }
 
         // GET BY ID
         public async Task<ServiceResponse<ProductDto?>> GetProductByIdAsync(int id)
         {
-            var response = new ServiceResponse<ProductDto?>();
-
             var product = await _repo.GetByIdAsync(id);
 
             if (product == null || product.IsDeleted)
-            {
-                response.Success = false;
-                response.Message = "Product not found";
-                return response;
-            }
+                throw new NotFoundException("Product not found");
 
-            response.Data = Map(product);
-            return response;
+            return new ServiceResponse<ProductDto?>
+            {
+                Success = true,
+                Data = Map(product)
+            };
         }
 
         // CATEGORY FILTER
         public async Task<ServiceResponse<IEnumerable<ProductDto>>> GetProductsByCategoryIdAsync(int categoryId)
         {
-            var response = new ServiceResponse<IEnumerable<ProductDto>>();
-
             var categoryExists = await _context.Categories.AnyAsync(c => c.Id == categoryId);
 
             if (!categoryExists)
-            {
-                response.Success = false;
-                response.Message = "Category not existing";
-                return response;
-            }
+                throw new NotFoundException("Category does not exist");
 
             var products = await _repo.GetByCategoryIdAsync(categoryId);
 
             if (products.Count == 0)
+                throw new NotFoundException("No products found in this category");
+
+            return new ServiceResponse<IEnumerable<ProductDto>>
             {
-                response.Success = false;
-                response.Message = "No products found in this category";
-                return response;
-            }
-
-            response.Data = products
-                .Where(p => !p.IsDeleted)
-                .Select(Map);
-
-            return response;
+                Success = true,
+                Data = products
+                    .Where(p => !p.IsDeleted)
+                    .Select(Map)
+            };
         }
 
         // SEARCH
         public async Task<ServiceResponse<IEnumerable<ProductDto>>> SearchProductsAsync(string keyword)
         {
-            var response = new ServiceResponse<IEnumerable<ProductDto>>();
-
             if (string.IsNullOrWhiteSpace(keyword))
-            {
-                response.Success = false;
-                response.Message = "Keyword is required";
-                return response;
-            }
+                throw new BadRequestException("Keyword is required");
 
             var products = await _repo.SearchProductsAsync(keyword);
 
             if (products.Count == 0)
+                throw new NotFoundException("No products found");
+
+            return new ServiceResponse<IEnumerable<ProductDto>>
             {
-                response.Success = false;
-                response.Message = "No products found";
-                return response;
-            }
-
-            response.Data = products
-                .Where(p => !p.IsDeleted)
-                .Select(Map);
-
-            return response;
+                Success = true,
+                Data = products
+                    .Where(p => !p.IsDeleted)
+                    .Select(Map)
+            };
         }
 
         private ProductDto Map(Product p)

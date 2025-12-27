@@ -25,122 +25,68 @@ namespace Flygans_Backend.Controllers
         [HttpPost("{productId}")]
         public async Task<IActionResult> Add(int productId, [FromQuery] int quantity = 1)
         {
-            try
-            {
-                var userId = GetUserId();
-                await _service.AddToCart(userId, productId, quantity);
+            var userId = GetUserId();
+            await _service.AddToCart(userId, productId, quantity);
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Item added to cart"
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Item added to cart"
+            });
         }
 
         [HttpPut("{productId}")]
         public async Task<IActionResult> UpdateQuantity(int productId, [FromQuery] int quantity)
         {
-            try
-            {
-                var userId = GetUserId();
-                await _service.UpdateQuantity(userId, productId, quantity);
+            var userId = GetUserId();
+            await _service.UpdateQuantity(userId, productId, quantity);
 
-                return Ok(new
-                {
-                    success = true,
-                    message = quantity <= 0 ? "Item removed from cart" : "Quantity updated"
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = quantity <= 0 ? "Item removed from cart" : "Quantity updated"
+            });
         }
 
         [HttpDelete("{productId}")]
         public async Task<IActionResult> Remove(int productId)
         {
-            try
-            {
-                var userId = GetUserId();
-                await _service.RemoveFromCart(userId, productId);
+            var userId = GetUserId();
+            await _service.RemoveFromCart(userId, productId);
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Item removed from cart"
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Item removed from cart"
+            });
         }
 
         [HttpDelete]
         public async Task<IActionResult> Clear()
         {
-            try
-            {
-                var userId = GetUserId();
-                await _service.ClearCart(userId);
+            var userId = GetUserId();
+            await _service.ClearCart(userId);
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Cart cleared"
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Cart cleared"
+            });
         }
 
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            try
-            {
-                var userId = GetUserId();
-                var cart = await _service.GetCartItems(userId);
+            var userId = GetUserId();
+            var cart = await _service.GetCartItems(userId);
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Cart retrieved",
-                    data = cart
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Cart retrieved",
+
+                data = cart
+            });
         }
     }
 }

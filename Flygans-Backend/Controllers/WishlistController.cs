@@ -23,14 +23,11 @@ public class WishlistController : ControllerBase
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(userIdClaim))
-            return Unauthorized();
+            throw new UnauthorizedAccessException();
 
         int userId = int.Parse(userIdClaim);
 
         var result = await _service.AddToWishlist(userId, productId);
-
-        if (!result.Success)
-            return BadRequest(result);
 
         return Ok(result);
     }
@@ -41,14 +38,11 @@ public class WishlistController : ControllerBase
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(userIdClaim))
-            return Unauthorized();
+            throw new UnauthorizedAccessException();
 
         int userId = int.Parse(userIdClaim);
 
         var result = await _service.RemoveFromWishlist(userId, productId);
-
-        if (!result.Success)
-            return BadRequest(result);
 
         return Ok(result);
     }
@@ -59,7 +53,7 @@ public class WishlistController : ControllerBase
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(userIdClaim))
-            return Unauthorized();
+            throw new UnauthorizedAccessException();
 
         int userId = int.Parse(userIdClaim);
 

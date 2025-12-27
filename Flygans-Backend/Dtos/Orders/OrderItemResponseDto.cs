@@ -10,7 +10,6 @@ namespace Flygans_Backend.DTOs.Orders
         public int Quantity { get; set; }
         public decimal TotalPrice => UnitPrice * Quantity;
 
-        // REQUIRED CONSTRUCTOR
         public OrderItemResponseDto(OrderItem item)
         {
             ProductId = item.ProductId;

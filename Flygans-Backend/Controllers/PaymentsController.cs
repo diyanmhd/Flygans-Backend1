@@ -1,5 +1,4 @@
 ﻿using Flygans_Backend.DTOs.Payments;
-using Flygans_Backend.Helpers;
 using Flygans_Backend.Services.Payments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +18,9 @@ namespace Flygans_Backend.Controllers
             _paymentService = paymentService;
         }
 
-        private int? GetUserId()
+        private int GetUserId()
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
-            return claim != null ? int.Parse(claim.Value) : null;
+            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         }
 
         [HttpPost("initiate")]
@@ -30,21 +28,10 @@ namespace Flygans_Backend.Controllers
             [FromBody] CreatePaymentRequestDto dto)
         {
             var userId = GetUserId();
-            if (userId == null)
-            {
-                return Unauthorized(new ServiceResponse<string>
-                {
-                    Success = false,
-                    Message = "Unauthorized user"
-                });
-            }
-
             var response = await _paymentService
-                .InitiatePaymentAsync(dto, userId.Value);
+                .InitiatePaymentAsync(dto, userId);
 
-            return response.Success
-                ? Ok(response)
-                : BadRequest(response);
+            return Ok(response);
         }
 
         [HttpPost("confirm")]
@@ -52,21 +39,10 @@ namespace Flygans_Backend.Controllers
         public async Task<IActionResult> ConfirmPayment(
             [FromBody] PaymentConfirmationDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ServiceResponse<string>
-                {
-                    Success = false,
-                    Message = "Invalid payment confirmation data"
-                });
-            }
-
             var response = await _paymentService
                 .ConfirmPaymentAsync(dto);
 
-            return response.Success
-                ? Ok(response)
-                : BadRequest(response);
+            return Ok(response);
         }
 
         [HttpGet("by-order-number/{orderNumber}")]
@@ -76,9 +52,7 @@ namespace Flygans_Backend.Controllers
             var response = await _paymentService
                 .GetPaymentByOrderNumberAsync(orderNumber);
 
-            return response.Success
-                ? Ok(response)
-                : NotFound(response);
+            return Ok(response);
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Flygans_Backend.Services.Users;
-using Flygans_Backend.Services.Admin;   // <-- add this
+using Flygans_Backend.Services.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,25 +11,22 @@ namespace Flygans_Backend.Controllers
     public class AdminUsersController : ControllerBase
     {
         private readonly IUserService _service;
-        private readonly IAdminDashboardService _dashboard;  // <-- add this
+        private readonly IAdminDashboardService _dashboard;
 
         public AdminUsersController(
             IUserService service,
-            IAdminDashboardService dashboard)   // <-- inject here
+            IAdminDashboardService dashboard)
         {
             _service = service;
-            _dashboard = dashboard;             // <-- assign
+            _dashboard = dashboard;
         }
 
-        // ⭐ DASHBOARD ENDPOINT HERE ⭐
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDashboard()
         {
             var stats = await _dashboard.GetDashboardStatsAsync();
             return Ok(stats);
         }
-
-        // EXISTING USER ENDPOINTS BELOW
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -42,10 +39,6 @@ namespace Flygans_Backend.Controllers
         public async Task<IActionResult> Block(int id)
         {
             var res = await _service.BlockUserAsync(id);
-
-            if (!res.Success)
-                return NotFound(res);
-
             return Ok(res);
         }
 
@@ -53,9 +46,6 @@ namespace Flygans_Backend.Controllers
         public async Task<IActionResult> Unblock(int id)
         {
             var res = await _service.UnblockUserAsync(id);
-
-                return NotFound(res);
-
             return Ok(res);
         }
 
@@ -63,10 +53,6 @@ namespace Flygans_Backend.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var res = await _service.DeleteUserAsync(id);
-
-            if (!res.Success)
-                return NotFound(res);
-
             return Ok(res);
         }
     }

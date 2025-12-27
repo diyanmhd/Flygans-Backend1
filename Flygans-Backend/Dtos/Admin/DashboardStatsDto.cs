@@ -2,13 +2,11 @@
 {
     public class DashboardStatsDto
     {
-        // Summary Counts
         public int TotalProducts { get; set; }
         public int TotalUsers { get; set; }
         public int TotalOrders { get; set; }
-        public decimal TotalRevenue { get; set; }  // Delivered only revenue
+        public decimal TotalRevenue { get; set; } 
 
-        // Order status Counts (separate values)
         public int PendingOrders { get; set; }
         public int ConfirmedOrders { get; set; }
         public int ProcessingOrders { get; set; }

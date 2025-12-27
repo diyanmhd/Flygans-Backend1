@@ -1,6 +1,6 @@
 ﻿using Flygans_Backend.Data;
 
-// EXISTING REPOSITORIES
+// Repositories
 using Flygans_Backend.Repositories.Auth;
 using Flygans_Backend.Repositories.Products;
 using Flygans_Backend.Repositories.Wishlists;
@@ -8,11 +8,9 @@ using Flygans_Backend.Repositories.Carts;
 using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Payments;
 using Flygans_Backend.Repositories.Users;
-
-// NEW: ADMIN DASHBOARD REPOSITORY
 using Flygans_Backend.Repositories.Admin;
 
-// EXISTING SERVICES
+// Services
 using Flygans_Backend.Services.Auth;
 using Flygans_Backend.Services.Products;
 using Flygans_Backend.Services.Wishlists;
@@ -21,9 +19,10 @@ using Flygans_Backend.Services.Orders;
 using Flygans_Backend.Services.Payments;
 using Flygans_Backend.Services.Users;
 using Flygans_Backend.Services.Cloudinary;
-
-// NEW: ADMIN DASHBOARD SERVICE
 using Flygans_Backend.Services.Admin;
+
+// Middleware
+using Flygans_Backend.Middleware;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -35,15 +34,24 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// CORS
+//
+// ======================= CORS =======================
+// React (Vite) runs on http://localhost:5173
+//
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
+//
+// ======================= CONTROLLERS =======================
+//
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -52,7 +60,9 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 
-// SWAGGER + JWT
+//
+// ======================= SWAGGER + JWT =======================
+//
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -80,12 +90,16 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// DB
+//
+// ======================= DATABASE =======================
+//
 builder.Services.AddDbContext<FlyganDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-// AUTH
+//
+// ======================= AUTHENTICATION =======================
+//
 var jwt = builder.Configuration.GetSection("Jwt");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -102,49 +116,45 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwt["Issuer"],
             ValidAudience = jwt["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwt["Key"]!)
+            )
         };
     });
 
 builder.Services.AddAuthorization();
 
-
-// ⭐ USER REPOS
+//
+// ======================= REPOSITORIES =======================
+//
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
 
-
-// ⭐ USER SERVICES
+//
+// ======================= SERVICES =======================
+//
 builder.Services.AddScoped<IUserService, UserService>();
-
-
-// OTHER SERVICES
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
-
-builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
-
-builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartService, CartService>();
-
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-
-builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
-
-// ⭐ NEW: ADMIN DASHBOARD REGISTRATION
-builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
-
-// PIPELINE
+//
+// ======================= PIPELINE =======================
+//
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -154,8 +164,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-app.UseCors();
+
+// ✅ CORS must be after UseRouting
+app.UseCors("AllowFrontend");
+
+// ✅ Global Exception Middleware
+app.UseMiddleware<ExceptionMiddleware>();
+
+// ✅ Auth order is IMPORTANT
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();

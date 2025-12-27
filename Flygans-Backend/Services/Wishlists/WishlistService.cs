@@ -2,6 +2,7 @@
 using Flygans_Backend.Repositories.Wishlists;
 using Flygans_Backend.Dtos.Wishlist;
 using Flygans_Backend.Helpers;
+using Flygans_Backend.Exceptions; // <-- required
 
 namespace Flygans_Backend.Services.Wishlists;
 
@@ -16,17 +17,10 @@ public class WishlistService : IWishlistService
 
     public async Task<ServiceResponse<bool>> AddToWishlist(int userId, int productId)
     {
-        var response = new ServiceResponse<bool>();
-
         var exists = await _repo.GetByUserAndProduct(userId, productId);
 
         if (exists != null)
-        {
-            response.Success = false;
-            response.Message = "Product already in wishlist";
-            response.Data = false;
-            return response;
-        }
+            throw new BadRequestException("Product already in wishlist");
 
         var wishlist = new Wishlist
         {
@@ -37,35 +31,30 @@ public class WishlistService : IWishlistService
         await _repo.Add(wishlist);
         await _repo.Save();
 
-        response.Success = true;
-        response.Message = "Added to wishlist successfully";
-        response.Data = true;
-
-        return response;
+        return new ServiceResponse<bool>
+        {
+            Success = true,
+            Message = "Added to wishlist successfully",
+            Data = true
+        };
     }
 
     public async Task<ServiceResponse<bool>> RemoveFromWishlist(int userId, int productId)
     {
-        var response = new ServiceResponse<bool>();
-
         var wishlist = await _repo.GetByUserAndProduct(userId, productId);
 
         if (wishlist == null)
-        {
-            response.Success = false;
-            response.Message = "Item not found in wishlist";
-            response.Data = false;
-            return response;
-        }
+            throw new NotFoundException("Item not found in wishlist");
 
         await _repo.Remove(wishlist);
         await _repo.Save();
 
-        response.Success = true;
-        response.Message = "Removed from wishlist";
-        response.Data = true;
-
-        return response;
+        return new ServiceResponse<bool>
+        {
+            Success = true,
+            Message = "Removed from wishlist",
+            Data = true
+        };
     }
 
     public async Task<ServiceResponse<List<WishlistDto>>> GetWishlist(int userId)

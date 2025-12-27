@@ -32,10 +32,6 @@ namespace Flygans_Backend.Controllers
         {
             int userId = GetUserId();
             var response = await _orderService.CreateOrderAsync(userId, dto);
-
-            if (!response.Success)
-                return BadRequest(response);
-
             return Ok(response);
         }
 
@@ -52,10 +48,6 @@ namespace Flygans_Backend.Controllers
         {
             int userId = GetUserId();
             var response = await _orderService.GetOrderByIdAsync(orderId, userId);
-
-            if (!response.Success)
-                return BadRequest(response);
-
             return Ok(response);
         }
 
@@ -74,10 +66,6 @@ namespace Flygans_Backend.Controllers
         public async Task<IActionResult> DeleteOrder(int orderId)
         {
             var response = await _orderService.DeleteOrder(orderId);
-
-            if (!response.Success)
-                return BadRequest(response);
-
             return Ok(response);
         }
 
@@ -87,10 +75,6 @@ namespace Flygans_Backend.Controllers
         public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] OrderStatus status)
         {
             var response = await _orderService.UpdateOrderStatus(orderId, status);
-
-            if (!response.Success)
-                return BadRequest(response);
-
             return Ok(response);
         }
     }

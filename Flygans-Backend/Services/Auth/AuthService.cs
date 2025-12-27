@@ -3,6 +3,7 @@ using Flygans_Backend.Models;
 using Flygans_Backend.Repositories.Auth;
 using System.Security.Cryptography;
 using System.Text;
+using Flygans_Backend.Exceptions; // required
 
 namespace Flygans_Backend.Services.Auth
 {
@@ -22,7 +23,7 @@ namespace Flygans_Backend.Services.Auth
             var exists = await _repo.GetByEmail(dto.Email);
 
             if (exists != null)
-                throw new Exception("Email already registered");
+                throw new BadRequestException("Email already registered");
 
             var user = new User
             {
@@ -47,13 +48,13 @@ namespace Flygans_Backend.Services.Auth
             var user = await _repo.GetByEmail(dto.Email);
 
             if (user == null || user.PasswordHash != Hash(dto.Password))
-                throw new Exception("Invalid credentials");
+                throw new UnauthorizedException("Invalid credentials");
 
             if (user.IsDeleted)
-                throw new Exception("This account was deleted by an admin.");
+                throw new UnauthorizedException("This account was deleted by an admin.");
 
             if (user.IsBlocked)
-                throw new Exception("Your account is blocked. Contact admin.");
+                throw new UnauthorizedException("Your account is blocked. Contact admin.");
 
             var accessToken = _jwt.CreateToken(user);
             var refreshToken = _jwt.GenerateRefreshToken();
@@ -79,25 +80,24 @@ namespace Flygans_Backend.Services.Auth
             var user = await _repo.GetByRefreshToken(refreshToken);
 
             if (user == null)
-                throw new Exception("Invalid refresh token");
+                throw new UnauthorizedException("Invalid refresh token");
 
             if (user.IsDeleted)
-                throw new Exception("This account was deleted by an admin.");
+                throw new UnauthorizedException("This account was deleted by an admin.");
 
             if (user.IsBlocked)
-                throw new Exception("Your account is blocked. Contact admin.");
+                throw new UnauthorizedException("Your account is blocked. Contact admin.");
 
             if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-                throw new Exception("Refresh token expired");
+                throw new UnauthorizedException("Refresh token expired");
 
-            // 🔥 ROTATE REFRESH TOKEN
             var newRefreshToken = _jwt.GenerateRefreshToken();
             user.RefreshToken = newRefreshToken;
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
             var newAccessToken = _jwt.CreateToken(user);
 
-            await _repo.Save(); // persist rotation
+            await _repo.Save();
 
             return new LoginResponseDto
             {
