@@ -18,7 +18,8 @@ namespace Flygans_Backend.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        // ✅ UPDATED DEFAULT STATUS
+        public OrderStatus Status { get; set; } = OrderStatus.PendingPayment;
 
         // Navigation → OrderItems
         public List<OrderItem> OrderItems { get; set; } = new();

@@ -25,8 +25,12 @@ namespace Flygans_Backend.Services.Admin
             // REVENUE (Delivered only)
             dto.TotalRevenue = await _repo.GetTotalRevenueAsync();
 
-            // STATUS COUNTS (separate)
-            dto.PendingOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Pending);
+            // ✅ PENDING = PendingPayment + COD
+            dto.PendingOrders =
+                await _repo.GetOrderCountByStatusAsync(OrderStatus.PendingPayment)
+              + await _repo.GetOrderCountByStatusAsync(OrderStatus.COD);
+
+            // OTHER STATUS COUNTS (unchanged meaning)
             dto.ConfirmedOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Confirmed);
             dto.ProcessingOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Processing);
             dto.ShippedOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Shipped);

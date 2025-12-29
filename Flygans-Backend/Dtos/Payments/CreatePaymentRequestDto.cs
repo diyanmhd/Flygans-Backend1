@@ -1,4 +1,7 @@
-﻿public class CreatePaymentRequestDto
+﻿namespace Flygans_Backend.DTOs.Payments
 {
-    public string OrderNumber { get; set; }
+    public class CreatePaymentRequestDto
+    {
+        public int OrderId { get; set; }      // ✅ REQUIRED
+    }
 }

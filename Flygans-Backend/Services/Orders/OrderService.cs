@@ -5,7 +5,7 @@ using Flygans_Backend.Repositories.Carts;
 using Flygans_Backend.Repositories.Orders;
 using Flygans_Backend.Repositories.Products;
 using Flygans_Backend.Repositories.Users;
-using Flygans_Backend.Exceptions; // required
+using Flygans_Backend.Exceptions;
 
 namespace Flygans_Backend.Services.Orders
 {
@@ -28,7 +28,8 @@ namespace Flygans_Backend.Services.Orders
             _userRepo = userRepo;
         }
 
-        public async Task<ServiceResponse<OrderResponseDto>> CreateOrderAsync(int userId, CreateOrderDto dto)
+        public async Task<ServiceResponse<OrderResponseDto>> CreateOrderAsync(
+            int userId, CreateOrderDto dto)
         {
             var user = await _userRepo.GetUserByIdAsync(userId);
 
@@ -54,15 +55,18 @@ namespace Flygans_Backend.Services.Orders
                 var cartItem = await _cartRepo.GetItem(cart.Id, req.ProductId);
 
                 if (cartItem == null)
-                    throw new NotFoundException($"Product with ID {req.ProductId} not found in your cart.");
+                    throw new NotFoundException(
+                        $"Product with ID {req.ProductId} not found in your cart.");
 
                 if (req.Quantity <= 0 || req.Quantity > cartItem.Quantity)
-                    throw new BadRequestException($"Invalid quantity for product ID {req.ProductId}.");
+                    throw new BadRequestException(
+                        $"Invalid quantity for product ID {req.ProductId}.");
 
                 var product = await _productRepo.GetByIdAsync(req.ProductId);
 
                 if (product == null)
-                    throw new NotFoundException($"Product with ID {req.ProductId} not found.");
+                    throw new NotFoundException(
+                        $"Product with ID {req.ProductId} not found.");
 
                 orderItems.Add(new OrderItem
                 {
@@ -83,6 +87,12 @@ namespace Flygans_Backend.Services.Orders
                 }
             }
 
+            // ✅ ONLY LOGIC CHANGE (payment-aware status)
+            var status =
+                dto.PaymentMethod == "Cod"
+                    ? OrderStatus.COD
+                    : OrderStatus.PendingPayment;
+
             var order = new Order
             {
                 UserId = userId,
@@ -90,7 +100,7 @@ namespace Flygans_Backend.Services.Orders
                 DeliveryAddress = dto.DeliveryAddress,
                 PaymentMethod = dto.PaymentMethod,
                 TotalAmount = totalAmount,
-                Status = OrderStatus.Pending,
+                Status = status, // ✅ FIXED
                 CreatedAt = DateTime.UtcNow,
                 OrderItems = orderItems
             };
