@@ -28,7 +28,10 @@ namespace Flygans_Backend.Models
         // BLOCK / UNBLOCK
         public bool IsBlocked { get; set; } = false;
 
-        // ⭐ SOFT DELETE SUPPORT
+        // SOFT DELETE
         public bool IsDeleted { get; set; } = false;
+
+        // ✅ CREATED DATE (for recent users)
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

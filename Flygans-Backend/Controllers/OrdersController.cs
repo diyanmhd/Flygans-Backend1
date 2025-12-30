@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Flygans_Backend.Controllers
 {
@@ -26,6 +27,8 @@ namespace Flygans_Backend.Controllers
                 User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value
             );
         }
+
+        // ================= USER =================
 
         [HttpPost("checkout")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
@@ -51,7 +54,9 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ⭐ ADMIN: GET ALL
+        // ================= ADMIN =================
+
+        // ⭐ ADMIN: GET ALL ORDERS
         [HttpGet("all")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllOrders()
@@ -69,12 +74,26 @@ namespace Flygans_Backend.Controllers
             return Ok(response);
         }
 
-        // ⭐ ADMIN: UPDATE STATUS
+        // ⭐ ADMIN: UPDATE ORDER STATUS (NO DTO VERSION)
         [HttpPatch("{orderId}/status")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] OrderStatus status)
+        public async Task<IActionResult> UpdateOrderStatus(
+            int orderId,
+            [FromBody] JsonElement body
+        )
         {
-            var response = await _orderService.UpdateOrderStatus(orderId, status);
+            // 1️⃣ Read "status" from JSON body
+            if (!body.TryGetProperty("status", out var statusProp))
+                return BadRequest("Status is required.");
+
+            var statusString = statusProp.GetString();
+
+            // 2️⃣ Convert string → enum safely
+            if (!Enum.TryParse<OrderStatus>(statusString, true, out var parsedStatus))
+                return BadRequest("Invalid order status.");
+
+            // 3️⃣ Update order
+            var response = await _orderService.UpdateOrderStatus(orderId, parsedStatus);
             return Ok(response);
         }
     }

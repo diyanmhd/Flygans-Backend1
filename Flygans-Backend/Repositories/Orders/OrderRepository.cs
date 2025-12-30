@@ -25,7 +25,7 @@ namespace Flygans_Backend.Repositories.Orders
             return await _context.Orders
                 .Where(o => o.UserId == userId)
                 .Include(o => o.OrderItems)
-                .ThenInclude(i => i.Product)
+                    .ThenInclude(oi => oi.Product) // ✅ required for image
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
         }
@@ -34,7 +34,7 @@ namespace Flygans_Backend.Repositories.Orders
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
-                .ThenInclude(i => i.Product)
+                    .ThenInclude(oi => oi.Product)
                 .FirstOrDefaultAsync(o => o.Id == orderId);
         }
 
@@ -42,7 +42,7 @@ namespace Flygans_Backend.Repositories.Orders
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
-                .ThenInclude(i => i.Product)
+                    .ThenInclude(oi => oi.Product)
                 .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
         }
 
@@ -50,7 +50,7 @@ namespace Flygans_Backend.Repositories.Orders
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
-                .ThenInclude(i => i.Product)
+                    .ThenInclude(oi => oi.Product)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
         }
@@ -58,7 +58,6 @@ namespace Flygans_Backend.Repositories.Orders
         public async Task<bool> DeleteOrder(int orderId)
         {
             var order = await _context.Orders.FindAsync(orderId);
-
             if (order == null)
                 return false;
 
@@ -70,7 +69,6 @@ namespace Flygans_Backend.Repositories.Orders
         public async Task<bool> UpdateOrderStatus(int orderId, OrderStatus status)
         {
             var order = await _context.Orders.FindAsync(orderId);
-
             if (order == null)
                 return false;
 

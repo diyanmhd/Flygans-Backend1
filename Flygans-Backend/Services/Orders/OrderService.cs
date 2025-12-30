@@ -78,16 +78,11 @@ namespace Flygans_Backend.Services.Orders
                 totalAmount += product.Price * req.Quantity;
 
                 if (req.Quantity == cartItem.Quantity)
-                {
                     await _cartRepo.RemoveItem(cartItem);
-                }
                 else
-                {
                     cartItem.Quantity -= req.Quantity;
-                }
             }
 
-            // ✅ ONLY LOGIC CHANGE (payment-aware status)
             var status =
                 dto.PaymentMethod == "Cod"
                     ? OrderStatus.COD
@@ -100,7 +95,7 @@ namespace Flygans_Backend.Services.Orders
                 DeliveryAddress = dto.DeliveryAddress,
                 PaymentMethod = dto.PaymentMethod,
                 TotalAmount = totalAmount,
-                Status = status, // ✅ FIXED
+                Status = status,
                 CreatedAt = DateTime.UtcNow,
                 OrderItems = orderItems
             };
@@ -112,7 +107,7 @@ namespace Flygans_Backend.Services.Orders
             {
                 Success = true,
                 Message = "Order placed successfully.",
-                Data = new OrderResponseDto(order)
+                Data = new OrderResponseDto(order) // ✅ Image flows from Product → DTO
             };
         }
 
