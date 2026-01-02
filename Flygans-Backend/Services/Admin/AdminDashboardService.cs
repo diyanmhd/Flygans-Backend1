@@ -13,6 +13,7 @@ namespace Flygans_Backend.Services.Admin
             _repo = repo;
         }
 
+        // ================= EXISTING METHOD (UNCHANGED) =================
         public async Task<DashboardStatsDto> GetDashboardStatsAsync()
         {
             var dto = new DashboardStatsDto();
@@ -22,15 +23,15 @@ namespace Flygans_Backend.Services.Admin
             dto.TotalProducts = await _repo.GetTotalProductsAsync();
             dto.TotalOrders = await _repo.GetTotalOrdersAsync();
 
-            // REVENUE (Delivered only)
+            // TOTAL REVENUE (Delivered only)
             dto.TotalRevenue = await _repo.GetTotalRevenueAsync();
 
-            // ✅ PENDING = PendingPayment + COD
+            // PENDING = PendingPayment + COD
             dto.PendingOrders =
                 await _repo.GetOrderCountByStatusAsync(OrderStatus.PendingPayment)
               + await _repo.GetOrderCountByStatusAsync(OrderStatus.COD);
 
-            // OTHER STATUS COUNTS (unchanged meaning)
+            // OTHER STATUS COUNTS
             dto.ConfirmedOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Confirmed);
             dto.ProcessingOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Processing);
             dto.ShippedOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Shipped);
@@ -38,6 +39,26 @@ namespace Flygans_Backend.Services.Admin
             dto.CancelledOrders = await _repo.GetOrderCountByStatusAsync(OrderStatus.Cancelled);
 
             return dto;
+        }
+
+        // ================= NEW METHOD (UNIFIED DASHBOARD) =================
+        public async Task<AdminDashboardResponseDto> GetAdminDashboardAsync()
+        {
+            var response = new AdminDashboardResponseDto
+            {
+                // Stats (reuse existing method)
+                Stats = await GetDashboardStatsAsync(),
+
+                // Revenue graph (last 7 days)
+                RevenueLast7Days = await _repo.GetRevenueLast7DaysAsync(),
+
+                // Recent activity
+                RecentUsers = await _repo.GetRecentUsersAsync(5),
+                RecentProducts = await _repo.GetRecentProductsAsync(5),
+                RecentOrders = await _repo.GetRecentOrdersAsync(5)
+            };
+
+            return response;
         }
     }
 }

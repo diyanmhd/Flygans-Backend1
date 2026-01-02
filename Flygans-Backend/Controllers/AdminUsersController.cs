@@ -21,13 +21,17 @@ namespace Flygans_Backend.Controllers
             _dashboard = dashboard;
         }
 
+        // ================= ADMIN DASHBOARD =================
+        // GET: /api/admin/users/dashboard
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDashboard()
         {
-            var stats = await _dashboard.GetDashboardStatsAsync();
-            return Ok(stats);
+            var dashboardData = await _dashboard.GetAdminDashboardAsync();
+            return Ok(dashboardData);
         }
 
+        // ================= USER MANAGEMENT =================
+        // GET: /api/admin/users
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -35,6 +39,7 @@ namespace Flygans_Backend.Controllers
             return Ok(res);
         }
 
+        // PATCH: /api/admin/users/{id}/block
         [HttpPatch("{id}/block")]
         public async Task<IActionResult> Block(int id)
         {
@@ -42,6 +47,7 @@ namespace Flygans_Backend.Controllers
             return Ok(res);
         }
 
+        // PATCH: /api/admin/users/{id}/unblock
         [HttpPatch("{id}/unblock")]
         public async Task<IActionResult> Unblock(int id)
         {
@@ -49,6 +55,7 @@ namespace Flygans_Backend.Controllers
             return Ok(res);
         }
 
+        // DELETE: /api/admin/users/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
